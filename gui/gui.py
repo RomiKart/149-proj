@@ -114,31 +114,45 @@ class Gui(Tk):
         self.l2.grid(row=1, column=1)
 
 import asyncio
-from bleak import BleakClient
+from bleak import discover
 
-address = "A6C01837-C772-4ED8-9984-5A006FA27336"
-
-LED_STATE_UUID = "32e6108a-2b22-4db5-a914-43ce41986c70"
-DISPLAY_UUID = "32e6108b-2b22-4db5-a914-43ce41986c70"
-
-async def run(address):
-    client = BleakClient(address)
-    try:
-        print("connecting")
-        await client.connect()
-        print("connected")
-    finally:
-        print("Disconnecting")
-        await client.disconnect()
-        print("Disconnected")
+async def run_ble():
+    print("Starting BLE")
+    devices = await discover()
+    for d in devices:
+        print(d)
 
 # loop = asyncio.get_event_loop()
-# loop.run_until_complete(run(address))
+# loop.run_until_complete(run())
 
+async def run_tk(root, interval=0.05):
+    '''
+    Run a tkinter app in an asyncio event loop.
+    '''
+    try:
+        while True:
+            root.update()
+            await asyncio.sleep(interval)
+    except TclError as e:
+        if "application has been destroyed" not in e.args[0]:
+            raise
+
+async def main():
+    root = Gui()
+    entry = Entry(root)
+    entry.grid()
+    
+    def spawn_ws_listener():
+        print("Spawn BLE")
+        return asyncio.ensure_future(run_ble())
+
+    Button(root, text='Connect', command=spawn_ws_listener).grid()
+    
+    await run_tk(root)
 
 if __name__ == "__main__" :
-    gui = Gui()
-    gui.mainloop()
+    # gui = Gui()
+    # gui.mainloop()
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(run(address))
+    loop.run_until_complete(main())

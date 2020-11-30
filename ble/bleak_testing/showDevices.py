@@ -2,6 +2,7 @@ import asyncio
 from bleak import discover
 
 async def run():
+    print("Starting BLE")
     devices = await discover()
     for d in devices:
         print(d)
