@@ -29,6 +29,11 @@
 
 #include "states.h"
 
+#include "app_util.h"
+#include "nrf_twi_mngr.h"
+
+// #include "max44009.h"
+
 // I2C manager
 NRF_TWI_MNGR_DEF(twi_mngr_instance, 5, 0);
 
@@ -54,27 +59,20 @@ static simple_ble_service_t robot_service = {{
 }};
 
 // TODO: Declare characteristics and variables for your service
-static simple_ble_char_t display_state_char = {.uuid16 = 0x108a};
+static simple_ble_char_t current_pos_char = {.uuid16 = 0x108a};
+static simple_ble_char_t target_pos_char = {.uuid16 = 0x108b};
+static simple_ble_char_t current_orient_char = {.uuid16 = 0x108c};
+
 static bool display_state = true;
 static char buf[16];
 
-simple_ble_app_t* simple_ble_app;
-
-void ble_evt_write(ble_evt_t const* p_ble_evt) {
-    if (simple_ble_is_char_event(p_ble_evt, &display_state_char)) {
-      printf("%s\n", buf);
-      display_write(buf, DISPLAY_LINE_1);
-      memset(buf, 0, sizeof(buf));
-    }
-}
-
-void print_state(states current_state){
-	switch(current_state){
-	case OFF:
-		display_write("OFF", DISPLAY_LINE_0);
-		break;
-    }
-}
+// void print_state(states current_state){
+// 	switch(current_state){
+// 	case OFF:
+// 		display_write("OFF", DISPLAY_LINE_0);
+// 		break;
+//     }
+// }
 
 static float measure_distance(uint16_t current_encoder, uint16_t previous_encoder) {
   // conversion from encoder ticks to meters
@@ -89,6 +87,31 @@ static float measure_distance(uint16_t current_encoder, uint16_t previous_encode
   }
   distance = diff * CONVERSION;
   return distance;
+}
+
+/*******************************************************************************
+ *   State for BLE application
+ ******************************************************************************/
+// Main application state
+simple_ble_app_t* simple_ble_app;
+
+void ble_evt_write(ble_evt_t const* p_ble_evt) {
+    if (simple_ble_is_char_event(p_ble_evt, &current_pos_char)) {
+      printf("Got write to LED characteristic!\n");
+      if (led_state) {
+        printf("Turning on LED!\n");
+        nrf_gpio_pin_clear(BUCKLER_LED0);
+      } else {
+        printf("Turning off LED!\n");
+        nrf_gpio_pin_set(BUCKLER_LED0);
+      }
+    } else if (simple_ble_is_char_event(p_ble_evt, &target_pos_char)) {
+      printf("Got write to display string!\n");
+      // snprintf(buf, 16, "%s", str);
+      display_write(str, DISPLAY_LINE_0);
+    } else if (simple_ble_is_char_event(p_ble_evt, &current_orient_char)) {
+
+    }
 }
 
 int main(void) {
@@ -106,7 +129,9 @@ int main(void) {
   simple_ble_add_service(&robot_service);
 
   // TODO: Register your characteristics
-  simple_ble_add_characteristic(1, 1, 0, 0, 16, (uint8_t *)buf, &robot_service, &display_state_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint8_t *)buf, &robot_service, &current_pos_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint8_t *)buf, &robot_service, &target_pos_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 4, (uint8_t *)buf, &robot_service, &current_orient_char);
 
   // Start Advertising
   simple_ble_adv_only_name();
@@ -132,6 +157,7 @@ int main(void) {
   error_code = nrf_drv_spi_init(&spi_instance, &spi_config, NULL, NULL);
   APP_ERROR_CHECK(error_code);
   display_init(&spi_instance);
+  display_write("Hello, Human!", DISPLAY_LINE_0);
   printf("Display initialized!\n");
 
   // initialize i2c master (two wire interface)
@@ -147,7 +173,6 @@ int main(void) {
   // initialize Kobuki
   kobukiInit();
   printf("Kobuki initialized!\n");
-
 
   KobukiSensors_t sensors = {0};
   
@@ -179,7 +204,8 @@ int main(void) {
     kobukiSensorPoll(&sensors);
     subtarget_x = subtarget_pos[subtarget_ind][0];
     subtarget_y = subtarget_pos[subtarget_ind][1];
-    target_orient = subtarget_ang[subtarget_ind];
+    target_orient = atan2(subtarget_y - current_y, subtarget_x - current_x)
+    // target_orient = subtarget_ang[subtarget_ind];
 
     // delay before continuing
     // Note: removing this delay will make responses quicker, but will result
@@ -330,4 +356,3 @@ int main(void) {
     }
   }
 }
-
