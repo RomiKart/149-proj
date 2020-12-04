@@ -2,7 +2,7 @@ import asyncio
 from bleak import discover
 from threading import Thread
 import argparse
-from gui import Gui
+from old_gui import Gui
 from tkinter import *
 
 import cv2
@@ -125,9 +125,10 @@ def run_cv():
     cv2.destroyAllWindows()
 
 async def scan():
-    devices = await discover()
-    for d in devices:
-        print(d)
+    while True:
+        devices = await discover()
+        for d in devices:
+            print(d)
 
 def run():
     asyncio.run(main_async(), debug=True)
