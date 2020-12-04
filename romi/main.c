@@ -63,14 +63,18 @@ static simple_ble_char_t current_pos_char = {.uuid16 = 0x108a};
 static simple_ble_char_t target_pos_char = {.uuid16 = 0x108b};
 static simple_ble_char_t current_orient_char = {.uuid16 = 0x108c};
 
+static float current_pos[2];
+// static float current_pos;
+static float target_pos[2];
+static float current_orient;
 static bool display_state = true;
 static char buf[16];
 
 // void print_state(states current_state){
-// 	switch(current_state){
-// 	case OFF:
-// 		display_write("OFF", DISPLAY_LINE_0);
-// 		break;
+//  switch(current_state){
+//  case OFF:
+//    display_write("OFF", DISPLAY_LINE_0);
+//    break;
 //     }
 // }
 
@@ -97,20 +101,25 @@ simple_ble_app_t* simple_ble_app;
 
 void ble_evt_write(ble_evt_t const* p_ble_evt) {
     if (simple_ble_is_char_event(p_ble_evt, &current_pos_char)) {
-      printf("Got write to LED characteristic!\n");
-      if (led_state) {
-        printf("Turning on LED!\n");
-        nrf_gpio_pin_clear(BUCKLER_LED0);
-      } else {
-        printf("Turning off LED!\n");
-        nrf_gpio_pin_set(BUCKLER_LED0);
-      }
+      printf("Got current position!\n");
+      // printf("X: %f, Y: %f\n", current_pos[0], current_pos[1]);
+      snprintf(buf, 16, "%f", current_pos[0]);
+      // snprintf(buf, 16, "%f", current_pos);
+      display_write(buf, DISPLAY_LINE_0);
+      snprintf(buf, 16, "%f", current_pos[1]);
+      display_write(buf, DISPLAY_LINE_1);
     } else if (simple_ble_is_char_event(p_ble_evt, &target_pos_char)) {
-      printf("Got write to display string!\n");
-      // snprintf(buf, 16, "%s", str);
-      display_write(str, DISPLAY_LINE_0);
+      printf("Got target position!\n");
+      snprintf(buf, 16, "%f", target_pos[0]);
+      display_write(buf, DISPLAY_LINE_0);
+      snprintf(buf, 16, "%f", target_pos[1]);
+      display_write(buf, DISPLAY_LINE_1);
+      // printf("X: %f, Y: %f\n", target_pos[0], target_pos[1]);
     } else if (simple_ble_is_char_event(p_ble_evt, &current_orient_char)) {
-
+      printf("Got current orientation!\n");
+      // printf("Orientation: %f\n", current_orient, current_orient);
+      snprintf(buf, 16, "%f", current_orient);
+      display_write(buf, DISPLAY_LINE_0);
     }
 }
 
@@ -129,9 +138,9 @@ int main(void) {
   simple_ble_add_service(&robot_service);
 
   // TODO: Register your characteristics
-  simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint8_t *)buf, &robot_service, &current_pos_char);
-  simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint8_t *)buf, &robot_service, &target_pos_char);
-  simple_ble_add_characteristic(1, 1, 0, 0, 4, (uint8_t *)buf, &robot_service, &current_orient_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint32_t *)&current_pos, &robot_service, &current_pos_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint32_t *)&target_pos, &robot_service, &target_pos_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 4, (uint32_t *)&current_orient, &robot_service, &current_orient_char);
 
   // Start Advertising
   simple_ble_adv_only_name();
@@ -185,7 +194,7 @@ int main(void) {
   float current_y = 0;
   float subtarget_x = 0;
   float subtarget_y = 0;
-  float current_orient = 0;
+  // float current_orient = 0;
   float target_orient = 90;
   bool at_subtarget = 0;
   float UP = 0;
@@ -204,7 +213,7 @@ int main(void) {
     kobukiSensorPoll(&sensors);
     subtarget_x = subtarget_pos[subtarget_ind][0];
     subtarget_y = subtarget_pos[subtarget_ind][1];
-    target_orient = atan2(subtarget_y - current_y, subtarget_x - current_x)
+    target_orient = atan2(subtarget_y - current_y, subtarget_x - current_x);
     // target_orient = subtarget_ang[subtarget_ind];
 
     // delay before continuing
@@ -224,7 +233,7 @@ int main(void) {
           state = TURN_RIGHT;
         } else {
           // perform state-specific actions here
-          display_write("OFF", DISPLAY_LINE_0);
+          // display_write("OFF", DISPLAY_LINE_0);
           kobukiDriveDirect(0, 0);
           state = OFF;
         }
@@ -254,7 +263,7 @@ int main(void) {
 
       case TURN_RIGHT: {
         lsm9ds1_measurement_t orients = lsm9ds1_read_gyro_integration();
-        float current_orient = fabs(orients.z_axis);
+        // float current_orient = fabs(orients.z_axis);
         char buf_ang[16];
         snprintf(buf_ang, 16, "%f", current_orient);
         //display_write(buf_ang, DISPLAY_LINE_1);
@@ -334,7 +343,7 @@ int main(void) {
 
       case TURN_LEFT: {
         lsm9ds1_measurement_t orients = lsm9ds1_read_gyro_integration();
-        float current_orient = fabs(orients.z_axis);
+        // float current_orient = fabs(orients.z_axis);
         char buf_ang[16];
         snprintf(buf_ang, 16, "%f", current_orient);
         //display_write(buf_ang, DISPLAY_LINE_1);
