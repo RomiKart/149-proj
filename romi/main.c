@@ -61,22 +61,12 @@ static simple_ble_service_t robot_service = {{
 // TODO: Declare characteristics and variables for your service
 static simple_ble_char_t current_pos_char = {.uuid16 = 0x108a};
 static simple_ble_char_t target_pos_char = {.uuid16 = 0x108b};
-static simple_ble_char_t current_orient_char = {.uuid16 = 0x108c};
 
-static float current_pos[2];
-// static float current_pos;
+static float current_pos[3];
 static float target_pos[2];
 static float current_orient;
 static bool display_state = true;
 static char buf[16];
-
-// void print_state(states current_state){
-//  switch(current_state){
-//  case OFF:
-//    display_write("OFF", DISPLAY_LINE_0);
-//    break;
-//     }
-// }
 
 static float measure_distance(uint16_t current_encoder, uint16_t previous_encoder) {
   // conversion from encoder ticks to meters
@@ -102,12 +92,10 @@ simple_ble_app_t* simple_ble_app;
 void ble_evt_write(ble_evt_t const* p_ble_evt) {
     if (simple_ble_is_char_event(p_ble_evt, &current_pos_char)) {
       printf("Got current position!\n");
-      // printf("X: %f, Y: %f\n", current_pos[0], current_pos[1]);
       snprintf(buf, 16, "%f", current_pos[0]);
-      // snprintf(buf, 16, "%f", current_pos);
       display_write(buf, DISPLAY_LINE_0);
       snprintf(buf, 16, "%f", current_pos[1]);
-      display_write(buf, DISPLAY_LINE_1);
+      //display_write(buf, DISPLAY_LINE_1);
     } else if (simple_ble_is_char_event(p_ble_evt, &target_pos_char)) {
       printf("Got target position!\n");
       snprintf(buf, 16, "%f", target_pos[0]);
@@ -115,11 +103,6 @@ void ble_evt_write(ble_evt_t const* p_ble_evt) {
       snprintf(buf, 16, "%f", target_pos[1]);
       display_write(buf, DISPLAY_LINE_1);
       // printf("X: %f, Y: %f\n", target_pos[0], target_pos[1]);
-    } else if (simple_ble_is_char_event(p_ble_evt, &current_orient_char)) {
-      printf("Got current orientation!\n");
-      // printf("Orientation: %f\n", current_orient, current_orient);
-      snprintf(buf, 16, "%f", current_orient);
-      display_write(buf, DISPLAY_LINE_0);
     }
 }
 
@@ -138,9 +121,8 @@ int main(void) {
   simple_ble_add_service(&robot_service);
 
   // TODO: Register your characteristics
-  simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint32_t *)&current_pos, &robot_service, &current_pos_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 12, (uint32_t *)&current_pos, &robot_service, &current_pos_char);
   simple_ble_add_characteristic(1, 1, 0, 0, 8, (uint32_t *)&target_pos, &robot_service, &target_pos_char);
-  simple_ble_add_characteristic(1, 1, 0, 0, 4, (uint32_t *)&current_orient, &robot_service, &current_orient_char);
 
   // Start Advertising
   simple_ble_adv_only_name();
@@ -184,23 +166,27 @@ int main(void) {
   printf("Kobuki initialized!\n");
 
   KobukiSensors_t sensors = {0};
-  
+
   uint16_t position = 0;
-  int16_t l_fwd = 50;
-  int16_t r_fwd = 50;
-  int16_t turn = 35;
+  int16_t l_fwd = 30;
+  int16_t r_fwd = 30;
+  int16_t turn = 45;
   uint16_t counter = 0;
   float current_x = 0;
   float current_y = 0;
   float subtarget_x = 0;
   float subtarget_y = 0;
-  // float current_orient = 0;
+  float current_orient = 0;
   float target_orient = 90;
   bool at_subtarget = 0;
-  float UP = 0;
-  float DOWN = 180;
-  float LEFT = 270;
-  float RIGHT = 90;
+  float UP = 270;
+  float DOWN = 90;
+  float LEFT = 360;
+  float RIGHT = 180;
+  uint16_t prev_ind = 0;
+  uint16_t angle_tolerance = 1;
+  uint16_t dist_tolerance = 0.05;
+
 
   // For testing without BLE input
   float subtarget_pos[6][2] = {{0, 0.3}, {0.10, 0.3}, {0.3, 0.3}, {0.3, 0.5}, {0.18, 0.5}, {0.18, 0.4}};
@@ -213,14 +199,15 @@ int main(void) {
     kobukiSensorPoll(&sensors);
     subtarget_x = subtarget_pos[subtarget_ind][0];
     subtarget_y = subtarget_pos[subtarget_ind][1];
-    target_orient = atan2(subtarget_y - current_y, subtarget_x - current_x);
-    // target_orient = subtarget_ang[subtarget_ind];
+    target_orient = atan2(subtarget_y - current_y, subtarget_x - current_x) * 180 / 3.14159 + 180;
+    current_x = current_pos[0];
+    current_y = current_pos[1];
+    current_orient = current_pos[2];
 
     // delay before continuing
     // Note: removing this delay will make responses quicker, but will result
     //  in printf's in this loop breaking JTAG
     nrf_delay_ms(1);
-    //kobukiDriveDirect(0, 0);
 
     // handle states
     switch(state) {
@@ -232,8 +219,7 @@ int main(void) {
         } else if (is_button_pressed(&sensors) && (current_orient != target_orient)) { //-> TURN_RIGHT currently not used since not getting current_orient from ble
           state = TURN_RIGHT;
         } else {
-          // perform state-specific actions here
-          // display_write("OFF", DISPLAY_LINE_0);
+          display_write("OFF", DISPLAY_LINE_0);
           kobukiDriveDirect(0, 0);
           state = OFF;
         }
@@ -243,15 +229,16 @@ int main(void) {
       case DRIVING: {
         float dist = measure_distance(sensors.leftWheelEncoder, position);
         char buf[16];
-        snprintf(buf, 16, "%f", dist);
-        //display_write(buf, DISPLAY_LINE_1);
+        snprintf(buf, 16, "%f", target_orient);
+        display_write(buf, DISPLAY_LINE_1);
         // transition logic
         if (is_button_pressed(&sensors)) {
           position = sensors.leftWheelEncoder;
           state = OFF;
-        } else if (dist >= subtarget_y) { //TODO: Need to compare x and y here... seems like there isn't a good way to do so with just encoder measurement
+        } else if ((current_x == subtarget_x) && (current_y == subtarget_y)) {
           state = SUBTARGET_REACHED;
           subtarget_ind += 1;
+          prev_ind = subtarget_ind - 1;
         } else {
           // perform state-specific actions here
           display_write("DRIVING", DISPLAY_LINE_0);
@@ -263,15 +250,15 @@ int main(void) {
 
       case TURN_RIGHT: {
         lsm9ds1_measurement_t orients = lsm9ds1_read_gyro_integration();
-        // float current_orient = fabs(orients.z_axis);
+        //float current_orient = fabs(orients.z_axis);
         char buf_ang[16];
         snprintf(buf_ang, 16, "%f", current_orient);
-        //display_write(buf_ang, DISPLAY_LINE_1);
+        display_write(buf_ang, DISPLAY_LINE_1);
 
         if (is_button_pressed(&sensors)) { // -> OFF
           state = OFF;
           lsm9ds1_stop_gyro_integration();
-        } else if (current_orient < (target_orient + 5) & current_orient > (target_orient - 5)) { // -> DRIVING
+        } else if (current_orient < (target_orient + angle_tolerance) && current_orient > (target_orient - angle_tolerance)) { // -> DRIVING
           state = DRIVING;
           position = sensors.leftWheelEncoder;
           lsm9ds1_stop_gyro_integration();
@@ -285,19 +272,18 @@ int main(void) {
       }
 
       case SUBTARGET_REACHED: {
-        uint32_t prev_ind = subtarget_ind - 1;
         if (is_button_pressed(&sensors))  { // -> OFF
           state = OFF;
-        //} else if (target_orient == current_orient) {
-        } else if (current_orient == subtarget_ang[prev_ind]) {
+        } else if (current_orient == target_orient) {
           at_subtarget = 0;
+          display_write("SUBTARGET_REACHED", DISPLAY_LINE_0);
           state = DRIVING;
           position = sensors.leftWheelEncoder;
-        } else if (target_orient == LEFT) {
+        } else if ((target_orient > UP) || (target_orient <= DOWN)) {
           at_subtarget = 0;
           state = TURN_LEFT;
           lsm9ds1_start_gyro_integration();
-        } else if (target_orient == RIGHT) {
+        } else if ((target_orient <= UP) && (target_orient > DOWN)) {
           at_subtarget = 0;
           state = TURN_RIGHT;
           lsm9ds1_start_gyro_integration();
@@ -307,43 +293,13 @@ int main(void) {
           kobukiDriveDirect(0, 0);
           at_subtarget = 1;
           state = SUBTARGET_REACHED;
-
-          // determining which direction to turn
-          // if (subtarget_x > current_x) {
-          //     if (current_orient == UP) {
-          //        target_orient = RIGHT;
-          //     } else if (current_orient == DOWN) {
-          //        target_orient = LEFT;
-          //     }
-          // } else if (subtarget_x < current_x) {
-          //     if (current_orient == UP) {
-          //        target_orient = LEFT;
-          //     } else if (current_orient == DOWN) {
-          //        target_orient = RIGHT;
-          //     }
-          // } else if (subtarget_y > current_y) {
-          //     if (current_orient == LEFT) {
-          //        target_orient = RIGHT;
-          //     } else if (current_orient == RIGHT) {
-          //        target_orient = LEFT;
-          //     }
-          // } else if (subtarget_y < current_y) {
-          //     if (current_orient == LEFT) {
-          //        target_orient = LEFT;
-          //     } else if (current_orient == RIGHT) {
-          //        target_orient = RIGHT;
-          //     }
-          // } else {
-          //     target_orient = current_orient;
-          // }
-
         }
         break;
       }
 
       case TURN_LEFT: {
         lsm9ds1_measurement_t orients = lsm9ds1_read_gyro_integration();
-        // float current_orient = fabs(orients.z_axis);
+        //float current_orient = fabs(orients.z_axis);
         char buf_ang[16];
         snprintf(buf_ang, 16, "%f", current_orient);
         //display_write(buf_ang, DISPLAY_LINE_1);
