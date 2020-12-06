@@ -47,6 +47,11 @@ class BleComm():
             await self.client.disconnect()
             print("Disconnected")
 
+    async def test_var(self, data):
+        while True:
+            print(data['target_pos'])
+            await asyncio.sleep(5)
+
 
 if __name__ == "__main__" :
     ble_comm = BleComm(address)

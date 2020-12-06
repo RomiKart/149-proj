@@ -85,8 +85,9 @@ class CellGrid(Canvas):
         cell.draw()
         #add the cell to the list of cell switched during the click
         self.switched.append(cell)
-        self.parent.coord_var.set(cell.abs)
+        self.parent.coord_var.set("{}, {}".format(cell.abs, cell.ord))
         # print(self.master.winfo_children())
+        self.parent.data['target_pos'].append((cell.abs, cell.ord))
 
     def handleMouseMotion(self, event):
         row, column = self._eventCoords(event)
@@ -98,15 +99,16 @@ class CellGrid(Canvas):
             self.switched.append(cell)
 
 class Gui(Tk):
-    def __init__(self):
+    def __init__(self, data):
         Tk.__init__(self)
         self.widgets()
+        self.data = data
     
     def widgets(self):
         self.grid_widget = CellGrid(self, 10, 10, 50)
         self.l1 = ttk.Label(self, text="Coordinates")
         self.coord_var = StringVar()
-        self.coord_var.set(10)
+        self.coord_var.set("0, 0")
         self.l2 = ttk.Label(self, textvariable=self.coord_var)
         
         self.grid_widget.grid(row=0, column=0, columnspan=2)
