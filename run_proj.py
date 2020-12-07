@@ -8,6 +8,16 @@ from cv.cv_detection import CV_Detector
 from gui.gui import Gui
 from ble.ble_comm import BleComm
 
+class Data():
+    def __init__(self, top_left, bottom_right):
+        self.top_left = top_left
+        self.bottom_right = bottom_right
+        self.target_pos = []
+        self.current_pos = [200, 200]
+        self.angle = 0
+        self.width = bottom_right[0] - top_left[0]
+        self.height = bottom_right[1] - top_left[1]
+
 async def run_tk(root, interval=0.05):
     '''
     Run a tkinter app in an asyncio event loop.
@@ -21,10 +31,10 @@ async def run_tk(root, interval=0.05):
             raise
 
 async def main_async():
-    data = {'target_pos': []}
+    data = Data([150, 41], [540, 386])
     root = Gui(data)
-    entry = Entry(root)
-    entry.grid()
+    # entry = Entry(root)
+    # entry.grid()
     address = "C0:98:E5:49:00:00"
     ble_comm = BleComm(address)
     

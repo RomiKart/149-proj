@@ -2,6 +2,7 @@
 
 from tkinter import *
 from tkinter import ttk
+import numpy as np
 
 class Cell():
     FILLED_COLOR_BG = "blue"
@@ -66,6 +67,10 @@ class CellGrid(Canvas):
         self.draw()
         self.pack()
 
+    def draw_romi(self):
+        romi_x = self.cellSize*(self.parent.data.current_pos[0] - self.parent.data.top_left[0]) / self.parent.cell_to_world
+        romi_y = self.cellSize*(self.parent.data.current_pos[1] - self.parent.data.top_left[1]) / self.parent.cell_to_world
+        self.create_oval(romi_x-5, romi_y-5, romi_x+5, romi_y+5, outline="#f11", fill="#1f1", width=2)
 
 
     def draw(self):
@@ -87,7 +92,8 @@ class CellGrid(Canvas):
         self.switched.append(cell)
         self.parent.coord_var.set("{}, {}".format(cell.abs, cell.ord))
         # print(self.master.winfo_children())
-        self.parent.data['target_pos'].append((cell.abs, cell.ord))
+        self.addTargetPos(cell.abs, cell.ord)
+        self.draw_romi()
 
     def handleMouseMotion(self, event):
         row, column = self._eventCoords(event)
@@ -97,15 +103,25 @@ class CellGrid(Canvas):
             cell._switch()
             cell.draw()
             self.switched.append(cell)
+    
+    def addTargetPos(self, abs, ord):
+        x = int((abs + 0.5) * self.parent.cell_to_world) + self.parent.data.top_left[0]
+        y = int((ord + 0.5) * self.parent.cell_to_world) + self.parent.data.top_left[1]
+        self.parent.data.target_pos.append((x, y))
+
 
 class Gui(Tk):
     def __init__(self, data):
         Tk.__init__(self)
-        self.widgets()
         self.data = data
+        self.cell_to_world = min(data.width, data.height) // 6
+        self.num_rows = int(np.ceil(data.height / self.cell_to_world))
+        self.num_cols = int(np.ceil(data.width / self.cell_to_world))
+        self.widgets(self.num_rows, self.num_cols)
+
     
-    def widgets(self):
-        self.grid_widget = CellGrid(self, 10, 10, 50)
+    def widgets(self, num_rows, num_cols):
+        self.grid_widget = CellGrid(self, num_rows, num_cols, 50)
         self.l1 = ttk.Label(self, text="Coordinates")
         self.coord_var = StringVar()
         self.coord_var.set("0, 0")

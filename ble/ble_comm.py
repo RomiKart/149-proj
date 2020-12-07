@@ -49,7 +49,7 @@ class BleComm():
 
     async def test_var(self, data):
         while True:
-            print(data['target_pos'])
+            print(data.target_pos)
             await asyncio.sleep(5)
 
 
