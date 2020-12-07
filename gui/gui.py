@@ -121,7 +121,7 @@ class Gui(Tk):
         self.widgets(self.num_rows, self.num_cols, gui_debug)
 
     
-    def widgets(self, num_rows, num_cols, gui_debug)):
+    def widgets(self, num_rows, num_cols, gui_debug):
         self.grid_widget = CellGrid(self, num_rows, num_cols, 50, gui_debug)
         self.l1 = ttk.Label(self, text="Coordinates")
         self.coord_var = StringVar()
