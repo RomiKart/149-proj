@@ -5,34 +5,67 @@ import numpy as np
 
 # define a video capture object
 vid = cv2.VideoCapture(1)
-# width = 600
-# height = 400
-# count = 0
+
 def onMouse(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         print('x = %d, y = %d'%(x, y))
 
-# lower_blue = np.array([110, 50, 50])
-# upper_blue = np.array([130, 255, 255])
-# lower_red = np.array([0, 50, 0])
-# upper_red = np.array([60, 255, 255])
+# lower_blue = np.array([88, 240, 64])
+# upper_blue = np.array([255, 255, 112])
 
-lower_blue = np.array([88, 240, 64])
-upper_blue = np.array([255, 255, 112])
+# Actual run
+# lower_blue = np.array([96, 128, 64])
+# upper_blue = np.array([255, 255, 255])
 
-lower_green = np.array([64, 128, 32])
-upper_green = np.array([96, 255, 128])
+# lower_blue = np.array([92, 180, 50])
+# upper_blue = np.array([128, 255, 255])
+
+# Cyan
+lower_blue = np.array([100, 112, 80])
+upper_blue = np.array([128, 255, 255])
+
+# lower_green = np.array([64, 128, 32])
+# upper_green = np.array([96, 255, 128])
+
+# Actual run
+lower_green = np.array([40, 40, 20])
+upper_green = np.array([98, 255, 255])
+
+# Yellow
+# lower_green = np.array([16, 0, 0])
+# upper_green = np.array([32, 255, 225])
+
+blue_x = []
+blue_y = []
+blue_count = 0
+blue_pos = [0, 0]
+
+green_x = []
+green_y = []
+green_count = 0
+green_pos = [0, 0]
+
+median_filt = 5
 
 while(True):
     ret, frame = vid.read()
 
     if frame is not None:
 
-        gaus_blur_frame = cv2.GaussianBlur(frame, (5, 5), 0)
+        gaus_blur_frame = cv2.GaussianBlur(frame, (3, 3), 0)
+        # gaus_blur_frame = cv2.medianBlur(frame, 3)
 
         # Homography correction
-        pts_actual = np.array([[47, 20], [47, 390], [560, 20],[560, 390]]) # from top down image
-        pts_camera = np.array([[130, 156], [32, 382],[471, 154],[573, 388]]) # from camera feed
+        # pts_actual = np.array([[47, 20], [47, 390], [560, 20],[560, 390]]) # from top down image
+        # pts_camera = np.array([[130, 156], [32, 382],[471, 154],[573, 388]]) # from camera feed
+
+        # pts_actual = np.array([[132, 391], [564, 381], [520, 43],[158, 39]]) # from top down image
+        # pts_camera = np.array([[98, 351], [570, 349],[481, 78],[162, 67]]) # from camera feed
+
+        # Actual run
+        pts_actual = np.array([[150, 386], [540, 386], [540, 41],[150, 41]]) # from top down image
+        pts_camera = np.array([[64, 412], [573, 402],[477, 102],[143, 92]]) # from camera feed
+
         h, status = cv2.findHomography(pts_camera, pts_actual)
         
         height, width, channels = frame.shape
@@ -60,9 +93,18 @@ while(True):
         blue_cen = []
 
         if blue_circles is not None:
-            for i in blue_circles[0,:]:
-                cv2.circle(homographized, (i[0],i[1]), 2, (0,0,255), 3)
             blue_cen = blue_circles[0,:][0][:2]
+            if (len(blue_x) == median_filt):
+                blue_x[blue_count] = blue_cen[0]
+                blue_y[blue_count] = blue_cen[1]
+            else:
+                blue_x.append(blue_cen[0])
+                blue_y.append(blue_cen[1])
+
+            if (blue_count == median_filt - 1):
+                blue_count = 0
+            else:
+                blue_count += 1
 
         green_grayscale = cv2.cvtColor(green, cv2.COLOR_BGR2HSV)
         green_canny = cv2.Canny(green_grayscale, 50, 240)
@@ -70,23 +112,43 @@ while(True):
         green_cen = []
 
         if green_circles is not None:
-            for i in green_circles[0,:]:
-                cv2.circle(homographized, (i[0],i[1]), 2, (255,0,0), 3)
             green_cen = green_circles[0,:][0][:2]
+            if (len(green_x) == median_filt):
+                green_x[green_count] = green_cen[0]
+                green_y[green_count] = green_cen[1]
+            else:
+                green_x.append(green_cen[0])
+                green_y.append(green_cen[1])
 
-        if ((green_cen != []) and (blue_cen != [])):
-            y_dist = green_cen[1] - blue_cen[1]
-            x_dist = green_cen[0] - blue_cen[0]
+            if (green_count == median_filt - 1):
+                green_count = 0
+            else:
+                green_count += 1
+
+        if (len(blue_x) == median_filt):
+            blue_pos = [np.median(blue_x), np.median(blue_y)]
+            if (blue_cen == []):
+                cv2.circle(homographized, (blue_pos[0], blue_pos[1]), 2, (255, 255, 255), 3)
+            else:
+                cv2.circle(homographized, (blue_pos[0], blue_pos[1]), 2, (0,0,255), 3)
+        if (len(green_x) == median_filt):
+            green_pos = [np.median(green_x), np.median(green_y)]
+            if (green_cen == []):
+                cv2.circle(homographized, (green_pos[0], green_pos[1]), 2, (255,255,255), 3)
+            else:
+                cv2.circle(homographized, (green_pos[0], green_pos[1]), 2, (255,255,0), 3)
+
+        if ((len(blue_x) == median_filt) and (len(green_x) == median_filt)):
+            y_dist = green_pos[1] - blue_pos[1]
+            x_dist = green_pos[0] - blue_pos[0]
             angle = np.arctan2(y_dist, x_dist) * 180 / np.pi
             print(angle)
 
         cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
         cv2.setMouseCallback("frame", onMouse)
         cv2.imshow('frame', frame)
-        # print(frame[155][378])
 
         # cv2.imshow("Blue", blue)
-        # cv2.imshow("Red", red)
         # cv2.imshow("Green", green)
         cv2.imshow("Colors", colors)
 
