@@ -40,7 +40,7 @@ class Cell():
             self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
 
 class CellGrid(Canvas):
-    def __init__(self, master, rowNumber, columnNumber, cellSize, *args, **kwargs):
+    def __init__(self, master, rowNumber, columnNumber, cellSize, gui_debug, *args, **kwargs):
         Canvas.__init__(self, master, width = cellSize * columnNumber , height = cellSize * rowNumber, *args, **kwargs)
         self.parent = master
         self.cellSize = cellSize
@@ -63,7 +63,7 @@ class CellGrid(Canvas):
         self.bind("<B1-Motion>", self.handleMouseMotion)
         #bind release button action - clear the memory of modified cells.
         self.bind("<ButtonRelease-1>", lambda event: self.switched.clear())
-
+        self.gui_debug = gui_debug
         self.draw()
         self.pack()
 
@@ -78,7 +78,8 @@ class CellGrid(Canvas):
             for cell in row:
                 cell.draw()
         self.draw_romi()
-        # self.after(4000, self.draw)
+        if self.gui_debug:
+            self.after(4000, self.draw)
 
     def _eventCoords(self, event):
         row = int(event.y / self.cellSize)
@@ -93,9 +94,7 @@ class CellGrid(Canvas):
         #add the cell to the list of cell switched during the click
         self.switched.append(cell)
         self.parent.coord_var.set("{}, {}".format(cell.abs, cell.ord))
-        # print(self.master.winfo_children())
         self.addTargetPos(cell.abs, cell.ord)
-        # self.draw_romi()
 
     def handleMouseMotion(self, event):
         row, column = self._eventCoords(event)
@@ -113,17 +112,17 @@ class CellGrid(Canvas):
 
 
 class Gui(Tk):
-    def __init__(self, data):
+    def __init__(self, data, gui_debug):
         Tk.__init__(self)
         self.data = data
         self.cell_to_world = min(data.width, data.height) // 6
         self.num_rows = int(np.ceil(data.height / self.cell_to_world))
         self.num_cols = int(np.ceil(data.width / self.cell_to_world))
-        self.widgets(self.num_rows, self.num_cols)
+        self.widgets(self.num_rows, self.num_cols, gui_debug)
 
     
-    def widgets(self, num_rows, num_cols):
-        self.grid_widget = CellGrid(self, num_rows, num_cols, 50)
+    def widgets(self, num_rows, num_cols, gui_debug)):
+        self.grid_widget = CellGrid(self, num_rows, num_cols, 50, gui_debug)
         self.l1 = ttk.Label(self, text="Coordinates")
         self.coord_var = StringVar()
         self.coord_var.set("0, 0")

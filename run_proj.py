@@ -30,20 +30,15 @@ async def run_tk(root, interval=0.05):
         if "application has been destroyed" not in e.args[0]:
             raise
 
-async def main_async(data, address, debug=False):
-    root = Gui(data)
-
-    
-    ble_comm = BleComm(address)
+async def main_async(root, ble_comm, ble_debug=False):
     
     def spawn_ble_listener():
         print("Spawn BLE")
-        if debug:
+        if ble_debug:
             return asyncio.ensure_future(ble_comm.test_var(data))
         else:
             return asyncio.ensure_future(ble_comm.send_msg(data))
 
-    
     def spawn_cv_listener():
         print("Spawn CV")
         cv_dec = CV_Detector(data)
@@ -58,13 +53,17 @@ if __name__ == "__main__" :
     address = "C0:98:E5:49:00:00"
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--no_cv', action='store_true')
-    parser.add_argument('--debug', action='store_true', default=False)
+    parser.add_argument('--thread', action='store_true', default=False)
+    parser.add_argument('--ble_debug', action='store_true', default=False)
+    parser.add_argument('--gui_debug', action='store_true', default=False)
     args = parser.parse_args()
 
-    if args.no_cv:
+    root = Gui(data, args.gui_debug)
+    ble_comm = BleComm(address)
+
+    if not args.thread:
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(main_async(data, address, args.debug))
+        loop.run_until_complete(main_async(root, ble_comm, args.ble_debug))
 
     else:
         cv_client = CV_Detector(data)
@@ -73,5 +72,5 @@ if __name__ == "__main__" :
         t1.start()
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(main_async(data))
+        loop.run_until_complete(main_async(root, ble_comm, args.ble_debug))
         t1.join()
