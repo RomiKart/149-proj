@@ -2,17 +2,18 @@ import cv2
 import sys
 import math
 import numpy as np
+import asyncio
 
 
 class CV_Detector():
 
-    def __init__(self):
-        pass
+    def __init__(self, data):
+        self.data = data
 
-    def run_cv(self):
+    async def run_cv(self):
         print ("Running CV")
         # define a video capture object
-        vid = cv2.VideoCapture(1)
+        vid = cv2.VideoCapture(0)
 
         # def onMouse(event, x, y, flags, param):
         #     if event == cv2.EVENT_LBUTTONDOWN:
@@ -54,8 +55,10 @@ class CV_Detector():
         green_pos = [0, 0]
 
         median_filt = 5
+        angle = 0
 
         while(True):
+            print("CV")
             ret, frame = vid.read()
 
             if frame is not None:
@@ -152,15 +155,19 @@ class CV_Detector():
                     angle = np.arctan2(y_dist, x_dist) * 180 / np.pi
                     print(angle)
 
-                # cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
-                # cv2.setMouseCallback("frame", onMouse)
-                # cv2.imshow('frame', frame)
+                # self.data.current_pos = [self.data.current_pos[0]+1, self.data.current_pos[1] + 1]
+                self.data.current_pos = blue_pos
+                self.data.angle = angle
+                cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
+                # # cv2.setMouseCallback("frame", onMouse)
+                cv2.imshow('frame', frame)
 
-                # cv2.imshow("Blue", blue)
-                # cv2.imshow("Green", green)
-                # cv2.imshow("Colors", colors)
+                cv2.imshow("Blue", blue)
+                cv2.imshow("Green", green)
+                cv2.imshow("Colors", colors)
 
-                # cv2.imshow("Homography", homographized)
+                cv2.imshow("Homography", homographized)
+                
 
             # dst = cv2.Canny(frame, 100, 150, None, 3)
             # linesP = cv2.HoughLinesP(dst, 1, np.pi / 180, 50, 100, 50, 10)
@@ -173,6 +180,8 @@ class CV_Detector():
             # # the 'q' button is set as the quitting button
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+            await asyncio.sleep(0.5)
 
             # Line detection
             # a = np.array([[225, 113]], dtype='float32')

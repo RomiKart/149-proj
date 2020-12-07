@@ -77,6 +77,8 @@ class CellGrid(Canvas):
         for row in self.g:
             for cell in row:
                 cell.draw()
+        self.draw_romi()
+        # self.after(4000, self.draw)
 
     def _eventCoords(self, event):
         row = int(event.y / self.cellSize)
@@ -93,7 +95,7 @@ class CellGrid(Canvas):
         self.parent.coord_var.set("{}, {}".format(cell.abs, cell.ord))
         # print(self.master.winfo_children())
         self.addTargetPos(cell.abs, cell.ord)
-        self.draw_romi()
+        # self.draw_romi()
 
     def handleMouseMotion(self, event):
         row, column = self._eventCoords(event)
