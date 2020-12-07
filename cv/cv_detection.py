@@ -13,7 +13,7 @@ class CV_Detector():
     async def run_cv(self):
         print ("Running CV")
         # define a video capture object
-        vid = cv2.VideoCapture(0)
+        vid = cv2.VideoCapture(1)
 
         # def onMouse(event, x, y, flags, param):
         #     if event == cv2.EVENT_LBUTTONDOWN:
@@ -58,7 +58,7 @@ class CV_Detector():
         angle = 0
 
         while(True):
-            print("CV")
+            # print("CV")
             ret, frame = vid.read()
 
             if frame is not None:
@@ -181,7 +181,7 @@ class CV_Detector():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
 
             # Line detection
             # a = np.array([[225, 113]], dtype='float32')
