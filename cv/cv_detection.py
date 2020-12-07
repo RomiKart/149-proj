@@ -184,3 +184,7 @@ class CV_Detector():
         vid.release()
         # Destroy all the windows
         cv2.destroyAllWindows()
+
+if __name__ == "__main__" :
+    comp_vis = CV_Detector()
+    comp_vis.run_cv()
