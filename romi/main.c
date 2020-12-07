@@ -62,29 +62,12 @@ static simple_ble_service_t robot_service = {{
 static simple_ble_char_t current_pos_char = {.uuid16 = 0x108a};
 static simple_ble_char_t target_pos_char = {.uuid16 = 0x108b};
 
-//static uint16_t len_targets = 14;
 static float current_pos[3];
-static float target_pos[14];
-static uint16_t num_targets = 14;
+static float target_pos[40] = {0};
+static uint16_t num_targets = 40;
 static float current_orient;
-static bool display_state = true;
 static char buf[16];
 static bool ready = false;
-
-static float measure_distance(uint16_t current_encoder, uint16_t previous_encoder) {
-  // conversion from encoder ticks to meters
-  const float CONVERSION = 0.0006108;
-  // calculate result here and return
-  float distance = 0;
-  uint16_t diff = 0;
-  if (current_encoder < previous_encoder) {
-    diff = 65535 - previous_encoder + current_encoder;
-  } else {
-    diff = current_encoder - previous_encoder;
-  }
-  distance = diff * CONVERSION;
-  return distance;
-}
 
 /*******************************************************************************
  *   State for BLE application
@@ -98,11 +81,11 @@ void ble_evt_write(ble_evt_t const* p_ble_evt) {
       // snprintf(buf, 16, "%f", current_pos[0]);
       // display_write(buf, DISPLAY_LINE_0);
       // snprintf(buf, 16, "%f", current_pos[1]);
-      //display_write(buf, DISPLAY_LINE_1);
+      // display_write(buf, DISPLAY_LINE_1);
     } else if (simple_ble_is_char_event(p_ble_evt, &target_pos_char)) {
       printf("Got target position!\n");
       ready = true;
-      // snprintf(buf, 16, "%f", target_pos[0]);
+      // snprintf(buf, 16, "%u", ready);
       // display_write(buf, DISPLAY_LINE_0);
       // snprintf(buf, 16, "%f", target_pos[3]);
       // display_write(buf, DISPLAY_LINE_1);
@@ -125,8 +108,8 @@ int main(void) {
   simple_ble_add_service(&robot_service);
 
   // TODO: Register your characteristics
-  simple_ble_add_characteristic(1, 1, 0, 0, 12, (uint32_t *)&current_pos, &robot_service, &current_pos_char);
-  simple_ble_add_characteristic(1, 1, 0, 0, 64, (uint32_t *)&target_pos, &robot_service, &target_pos_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 12, (uint8_t *)&current_pos, &robot_service, &current_pos_char);
+  simple_ble_add_characteristic(1, 1, 0, 0, 160, (uint8_t *)&target_pos, &robot_service, &target_pos_char);
 
   // Start Advertising
   simple_ble_adv_only_name();
@@ -169,27 +152,21 @@ int main(void) {
   kobukiInit();
   printf("Kobuki initialized!\n");
 
-  KobukiSensors_t sensors = {0};
-
-  uint16_t position = 0;
+  //uint16_t position = 0;
   int16_t l_fwd = 75;
   int16_t r_fwd = 85;
   int16_t turn = 45;
-  uint16_t counter = 0;
   float current_x = 0;
   float current_y = 0;
   float subtarget_x = 0;
   float subtarget_y = 0;
-  float current_orient = 0;
   float target_orient = 90;
-  bool at_subtarget = 0;
   float UP = 270;
   float DOWN = 90;
-  float LEFT = 360;
-  float RIGHT = 180;
-  uint16_t prev_ind = 0;
-  uint16_t angle_tolerance = 1;
-  uint16_t dist_tolerance = 0.1;
+  // float LEFT = 360;
+  // float RIGHT = 180;
+  float angle_tolerance = 1;
+  float dist_tolerance = 0.1;
   uint32_t subtarget_ind = 0;
 
   // loop forever, running state machine
@@ -206,8 +183,6 @@ int main(void) {
     current_orient = current_pos[2];
 
     // delay before continuing
-    // Note: removing this delay will make responses quicker, but will result
-    //  in printf's in this loop breaking JTAG
     nrf_delay_ms(1);
 
     // handle states
@@ -216,6 +191,7 @@ int main(void) {
         // transition logic
         if (ready == true) {
           state = DRIVING;
+          subtarget_ind = 0;
           //position = sensors.leftWheelEncoder;
         // } else if (ready == true && (current_orient != target_orient)) { //-> TURN_RIGHT currently not used since not getting current_orient from ble
         //   state = TURN_RIGHT;
@@ -229,14 +205,14 @@ int main(void) {
 
       case DRIVING: {
         //float dist = measure_distance(sensors.leftWheelEncoder, position);
-        char buf[16];
-        snprintf(buf, 16, "%f", current_y);
-        display_write(buf, DISPLAY_LINE_1);
+        char buf_dir[16];
+        snprintf(buf_dir, 16, "%f", current_y);
+        display_write(buf_dir, DISPLAY_LINE_1);
         // transition logic
         if (is_button_pressed(&sensors)) {
-          position = sensors.leftWheelEncoder;
+          //position = sensors.leftWheelEncoder;
           state = OFF;
-        } else if (current_x == subtarget_x && current_y == subtarget_y) {
+        } else if (((current_x >= subtarget_x - dist_tolerance) && (current_x <= subtarget_x + dist_tolerance)) && ((current_y >= subtarget_y - dist_tolerance) && (current_y <= subtarget_y + dist_tolerance))) {
           state = SUBTARGET_REACHED;
           subtarget_ind += 2;
           //prev_ind = subtarget_ind - 1;
@@ -259,7 +235,7 @@ int main(void) {
         if (is_button_pressed(&sensors)) { // -> OFF
           state = OFF;
           //lsm9ds1_stop_gyro_integration();
-        } else if (current_orient < (target_orient + angle_tolerance) && current_orient > (target_orient - angle_tolerance)) { // -> DRIVING
+        } else if ((current_orient < (target_orient + angle_tolerance)) && (current_orient > (target_orient - angle_tolerance))) { // -> DRIVING
           state = DRIVING;
           //position = sensors.leftWheelEncoder;
           //lsm9ds1_stop_gyro_integration();
@@ -273,21 +249,21 @@ int main(void) {
       }
 
       case SUBTARGET_REACHED: {
-        if (is_button_pressed(&sensors) || subtarget_ind >= num_targets)  { // -> OFF
+        if ((is_button_pressed(&sensors)) || (subtarget_ind >= num_targets) || (current_x <= 0 && current_y <= 0))  { // -> OFF
           state = OFF;
           ready = false;
-        } else if (current_orient == target_orient) {
+        } else if ((current_orient >= target_orient - angle_tolerance) && (current_orient <= target_orient + angle_tolerance)) {
           display_write("SUBTARGET_REACHED", DISPLAY_LINE_0);
           state = DRIVING;
           //position = sensors.leftWheelEncoder;
-        } else if ((((target_orient > UP) || (target_orient <= DOWN)) && current_orient != DOWN) || (((target_orient <= UP) && (target_orient > DOWN)) && current_orient != UP)) {
+        } else if ((((target_orient > UP) || (target_orient <= DOWN)) && ((current_orient > DOWN + 30) || (current_orient < DOWN - 30))) || (((target_orient <= UP) && (target_orient > DOWN)) && ((current_orient > UP + 30) || (current_orient < UP - 30)))) {
           state = TURN_LEFT;
           //lsm9ds1_start_gyro_integration();
-        } else if (((target_orient <= UP) && (target_orient > DOWN) && current_orient != DOWN) || (((target_orient > UP) || (target_orient <= DOWN))) && current_orient != UP) {
+        } else if (((target_orient <= UP) && (target_orient > DOWN) && ((current_orient > DOWN + 30) || (current_orient < DOWN - 30))) || (((target_orient > UP) || (target_orient <= DOWN)) && ((current_orient > UP + 30) || (current_orient < UP - 30)))) {
           state = TURN_RIGHT;
           //lsm9ds1_start_gyro_integration();
         } else {
-          printf("SUBTARGET_REACHED\t%f\n");
+          printf("SUBTARGET_REACHED\n");
           display_write("SUBTARGET_REACHED", DISPLAY_LINE_0);
           state = SUBTARGET_REACHED;
         }
@@ -302,7 +278,7 @@ int main(void) {
         display_write(buf_ang, DISPLAY_LINE_1);
         if (is_button_pressed(&sensors)) { // -> OFF
           state = OFF;
-        } else if (current_orient < (target_orient + angle_tolerance) && current_orient > (target_orient - angle_tolerance)) { // -> DRIVE_STRAIGHT
+        } else if ((current_orient < (target_orient + angle_tolerance)) && (current_orient > (target_orient - angle_tolerance))) { // -> DRIVE_STRAIGHT
           state = DRIVING;
           //position = sensors.leftWheelEncoder;
           //lsm9ds1_stop_gyro_integration();
