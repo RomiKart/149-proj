@@ -68,6 +68,7 @@ static uint16_t num_targets = 40;
 static float current_orient;
 static char buf[16];
 static bool ready = false;
+static bool ready2 = false;
 
 /*******************************************************************************
  *   State for BLE application
@@ -78,6 +79,7 @@ simple_ble_app_t* simple_ble_app;
 void ble_evt_write(ble_evt_t const* p_ble_evt) {
     if (simple_ble_is_char_event(p_ble_evt, &current_pos_char)) {
       printf("Got current position!\n");
+      ready2 = true;
       // snprintf(buf, 16, "%f", current_pos[0]);
       // display_write(buf, DISPLAY_LINE_0);
       // snprintf(buf, 16, "%f", current_pos[1]);
@@ -153,20 +155,20 @@ int main(void) {
   printf("Kobuki initialized!\n");
 
   //uint16_t position = 0;
-  int16_t l_fwd = 75;
-  int16_t r_fwd = 85;
-  int16_t turn = 45;
+  int16_t l_fwd = 30;
+  int16_t r_fwd = 30;
+  int16_t turn = 25;
   float current_x = 0;
   float current_y = 0;
   float subtarget_x = 0;
   float subtarget_y = 0;
   float target_orient = 90;
-  float UP = 270;
-  float DOWN = 90;
+  float UP = 90;
+  float DOWN = 270;
   // float LEFT = 360;
   // float RIGHT = 180;
-  float angle_tolerance = 1;
-  float dist_tolerance = 0.1;
+  float angle_tolerance = 5;
+  float dist_tolerance = 10;
   uint32_t subtarget_ind = 0;
 
   // loop forever, running state machine
@@ -177,7 +179,11 @@ int main(void) {
     subtarget_x = target_pos[subtarget_ind];
     subtarget_y = target_pos[subtarget_ind+1];
 
-    target_orient = atan2(subtarget_y - current_y, subtarget_x - current_x) * 180 / 3.14159 + 180;
+    target_orient = atan2(subtarget_y - current_y, subtarget_x - current_x) * 180 / 3.14159;
+    if (target_orient <= 0) {
+      target_orient += 360;
+    }
+
     current_x = current_pos[0];
     current_y = current_pos[1];
     current_orient = current_pos[2];
@@ -189,12 +195,12 @@ int main(void) {
     switch(state) {
       case OFF: {
         // transition logic
-        if (ready == true) {
+        if (ready && ready2 && ((current_orient > target_orient + 20) || (current_orient < target_orient - 20))) { //-> TURN_RIGHT currently not used since not getting current_orient from ble
+          state = TURN_RIGHT;
+        } else if (ready && ready2) {
           state = DRIVING;
           subtarget_ind = 0;
           //position = sensors.leftWheelEncoder;
-        // } else if (ready == true && (current_orient != target_orient)) { //-> TURN_RIGHT currently not used since not getting current_orient from ble
-        //   state = TURN_RIGHT;
         } else {
           display_write("OFF", DISPLAY_LINE_0);
           kobukiDriveDirect(0, 0);
@@ -252,15 +258,16 @@ int main(void) {
         if ((is_button_pressed(&sensors)) || (subtarget_ind >= num_targets) || (current_x <= 0 && current_y <= 0))  { // -> OFF
           state = OFF;
           ready = false;
+          ready2 = false;
         } else if ((current_orient >= target_orient - angle_tolerance) && (current_orient <= target_orient + angle_tolerance)) {
           display_write("SUBTARGET_REACHED", DISPLAY_LINE_0);
           state = DRIVING;
           //position = sensors.leftWheelEncoder;
-        } else if ((((target_orient > UP) || (target_orient <= DOWN)) && ((current_orient > DOWN + 30) || (current_orient < DOWN - 30))) || (((target_orient <= UP) && (target_orient > DOWN)) && ((current_orient > UP + 30) || (current_orient < UP - 30)))) {
-          state = TURN_LEFT;
-          //lsm9ds1_start_gyro_integration();
-        } else if (((target_orient <= UP) && (target_orient > DOWN) && ((current_orient > DOWN + 30) || (current_orient < DOWN - 30))) || (((target_orient > UP) || (target_orient <= DOWN)) && ((current_orient > UP + 30) || (current_orient < UP - 30)))) {
+        } else if ((((target_orient >= DOWN) || (target_orient < UP)) && ((current_orient > UP + 30) || (current_orient < UP - 30))) || (((target_orient <= DOWN) && (target_orient > UP)) && ((current_orient > DOWN + 30) || (current_orient < DOWN - 30)))) {
           state = TURN_RIGHT;
+          //lsm9ds1_start_gyro_integration();
+        } else if (((target_orient < DOWN) && (target_orient >= UP) && ((current_orient > UP + 30) || (current_orient < UP - 30))) || (((target_orient > DOWN) || (target_orient <= UP)) && ((current_orient > DOWN + 30) || (current_orient < DOWN - 30)))) {
+          state = TURN_LEFT;
           //lsm9ds1_start_gyro_integration();
         } else {
           printf("SUBTARGET_REACHED\n");
