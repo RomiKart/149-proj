@@ -58,7 +58,7 @@ class BleComm():
             print("connecting")
             await self.client.connect()
             print("connected")
-
+            print(data.target_pos)
             targs = data.target_pos
             flattened = np.ravel(targs)
             ba = bytearray(struct.pack('{}f'.format(len(flattened)), *flattened))
@@ -68,7 +68,7 @@ class BleComm():
             while(True):
                 x = data.current_pos[0]
                 y = data.current_pos[1]
-                orient = data.angle
+                orient = data.angle + 180
 
                 ba = bytearray(struct.pack("<3f", x, y, orient))
                 await self.client.write_gatt_char(CURRENT_DATA_UUID, ba)

@@ -160,11 +160,11 @@ class CV_Detector():
                 self.data.angle = angle
                 cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
                 # # cv2.setMouseCallback("frame", onMouse)
-                cv2.imshow('frame', frame)
+                # cv2.imshow('frame', frame)
 
-                cv2.imshow("Blue", blue)
-                cv2.imshow("Green", green)
-                cv2.imshow("Colors", colors)
+                # cv2.imshow("Blue", blue)
+                # cv2.imshow("Green", green)
+                # cv2.imshow("Colors", colors)
 
                 cv2.imshow("Homography", homographized)
                 
