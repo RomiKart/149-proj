@@ -68,13 +68,17 @@ class BleComm():
             while(True):
                 x = data.current_pos[0]
                 y = data.current_pos[1]
-                orient = data.angle + 180
+                target_orient = np.arctan2(data.target_pos[0][1] - y, data.target_pos[0][0] - x) * 180 / np.pi
+                if (data.angle <= 0):
+                    orient = data.angle + 360
+                else:
+                    orient = data.angle
 
                 ba = bytearray(struct.pack("<3f", x, y, orient))
                 await self.client.write_gatt_char(CURRENT_DATA_UUID, ba)
-                print("Done Writing Current Position!")
-                print(x, y, orient)
-                await asyncio.sleep(.5)
+                # print("Done Writing Current Position!")
+                print(x, y, orient, target_orient)
+                await asyncio.sleep(.15)
         finally:
             print("Disconnecting")
             await self.client.disconnect()

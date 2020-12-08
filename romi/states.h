@@ -15,6 +15,7 @@ typedef enum {
   	DRIVING, 
   	TURN_RIGHT,
   	SUBTARGET_REACHED,
+  	PAUSE,
   	TURN_LEFT
 } states;
 

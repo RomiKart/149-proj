@@ -153,10 +153,11 @@ class CV_Detector():
                     y_dist = green_pos[1] - blue_pos[1]
                     x_dist = green_pos[0] - blue_pos[0]
                     angle = np.arctan2(y_dist, x_dist) * 180 / np.pi
-                    print(angle)
+                    # print(angle)
 
                 # self.data.current_pos = [self.data.current_pos[0]+1, self.data.current_pos[1] + 1]
-                self.data.current_pos = blue_pos
+                self.data.current_pos = [(blue_pos[0] + green_pos[0]) // 2, (blue_pos[1] + green_pos[1]) // 2]
+                # self.data.current_pos = blue_pos
                 self.data.angle = angle
                 cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
                 # # cv2.setMouseCallback("frame", onMouse)
@@ -181,7 +182,7 @@ class CV_Detector():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.02)
 
             # Line detection
             # a = np.array([[225, 113]], dtype='float32')
