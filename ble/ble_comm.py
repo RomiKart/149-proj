@@ -18,35 +18,34 @@ class BleComm():
             for d in devices:
                 print(d)
 
-    # async def run_ble(self):
-    #     try:
-    #         print("connecting")
-    #         await self.client.connect()
-    #         print("connected")
+    async def test_ble(self):
+        try:
+            print("connecting")
+            await self.client.connect()
+            print("connected")
+            counter = 0
 
-    #         while(True):
-    #             choice = input("Current or Target?\n")
-    #             if (choice == "Current"):
-    #                 x = float(input("X Coord:\n"))
-    #                 y = float(input("Y Coord:\n"))
-    #                 orient = float(input("Orientation:\n"))
+            while(True):
+                x = data.current_pos[0]
+                y = data.current_pos[1]
+                target_orient = np.arctan2(data.target_pos[0][1] - y, data.target_pos[0][0] - x) * 180 / np.pi
+                counter += 1 
+                if (data.angle <= 0):
+                    orient = data.angle + 360
+                else:
+                    orient = data.angle
 
-    #                 ba = bytearray(struct.pack("<3f", x, y, orient))
-    #                 await self.client.write_gatt_char(CURRENT_DATA_UUID, ba)
-    #                 print("Done Writing!")
-    #             elif (choice == "Target"):
-    #                 x = float(input("X Coord:\n"))
-    #                 y = float(input("Y Coord:\n"))
-                    
-    #                 ba = bytearray(struct.pack("<2f", x, y))
-    #                 await self.client.write_gatt_char(TARGET_DATA_UUID, ba)
-    #                 print("Done Writing!")
-    #             await asyncio.sleep(.5)
-    #     finally:
-    #         # buckler.disconnect()
-    #         print("Disconnecting")
-    #         await self.client.disconnect()
-    #         print("Disconnected")
+                ba = bytearray(struct.pack("<3f", x, y, counter))
+                print("Before:", counter)
+                await self.client.write_gatt_char(CURRENT_DATA_UUID, ba)
+                print("After:", counter)
+                if counter == 30000:
+                    break
+                await asyncio.sleep(.15)
+        finally:
+            print("Disconnecting")
+            await self.client.disconnect()
+            print("Disconnected")
 
     # async def test_var(self, data):
     #     while True:

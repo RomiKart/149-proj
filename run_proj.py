@@ -36,7 +36,7 @@ async def main_async(root, ble_comm, ble_debug=False):
     def spawn_ble_listener():
         print("Spawn BLE")
         if ble_debug:
-            return asyncio.ensure_future(ble_comm.test_var(data))
+            return asyncio.ensure_future(ble_comm.test_ble(data))
         else:
             return asyncio.ensure_future(ble_comm.send_msg(data))
 
