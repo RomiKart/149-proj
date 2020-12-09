@@ -3,6 +3,7 @@ from threading import Thread
 import argparse
 
 from tkinter import *
+from tkinter import ttk
 
 from cv.cv_detection import CV_Detector
 from gui.gui import Gui
@@ -44,8 +45,8 @@ async def main_async(root, ble_comm, ble_debug=False):
         cv_dec = CV_Detector(data)
         return asyncio.ensure_future(cv_dec.run_cv())
 
-    Button(root, text='Connect', command=spawn_ble_listener).grid()
-    Button(root, text='CV', command=spawn_cv_listener).grid()
+    ttk.Button(root, text='Connect', command=spawn_ble_listener).grid()
+    ttk.Button(root, text='CV', command=spawn_cv_listener).grid()
     await run_tk(root)
 
 if __name__ == "__main__" :
