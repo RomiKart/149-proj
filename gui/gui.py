@@ -93,7 +93,6 @@ class CellGrid(Canvas):
         cell.draw()
         #add the cell to the list of cell switched during the click
         self.switched.append(cell)
-        self.parent.coord_var.set("{}, {}".format(cell.abs, cell.ord))
         self.addTargetPos(cell.abs, cell.ord)
 
     def handleMouseMotion(self, event):
@@ -109,15 +108,19 @@ class CellGrid(Canvas):
         x = int((abs + 0.5) * self.parent.cell_to_world) + self.parent.data.top_left[0]
         y = int((ord + 0.5) * self.parent.cell_to_world) + self.parent.data.top_left[1]
         self.parent.data.target_pos.append((x, y))
+        self.parent.coord_var.set("GUI:{}, {} CV: {}, {}".format(abs, ord, x, y))
 
 
 class Gui(Tk):
     def __init__(self, data, gui_debug):
         Tk.__init__(self)
         self.data = data
-        self.cell_to_world = min(data.width, data.height) // 6
-        self.num_rows = int(np.ceil(data.height / self.cell_to_world))
-        self.num_cols = int(np.ceil(data.width / self.cell_to_world))
+        self.cell_to_world = 30
+        # self.cell_to_world = min(data.width, data.height) // 6
+        self.num_rows = data.height // self.cell_to_world
+        self.num_cols = data.width // self.cell_to_world
+        # self.num_rows = int(np.ceil(data.height / self.cell_to_world))
+        # self.num_cols = int(np.ceil(data.width / self.cell_to_world))
         self.widgets(self.num_rows, self.num_cols, gui_debug)
 
     
