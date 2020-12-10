@@ -166,7 +166,11 @@ class CV_Detector():
                 # cv2.imshow("Blue", blue)
                 # cv2.imshow("Green", green)
                 # cv2.imshow("Colors", colors)
-
+                # cv2.circle(homographized, (345, 206), 2, (255,255,255), 3)
+                # cv2.circle(homographized, (345, 236), 2, (255,255,255), 3)
+                # cv2.circle(homographized, (345, 266), 2, (255,255,255), 3)
+                for target in self.data.target_pos:
+                    cv2.circle(homographized, target, 2, (255, 255, 255), 3)
                 cv2.imshow("Homography", homographized)
                 
 
