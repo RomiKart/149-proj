@@ -18,7 +18,7 @@ class BleComm():
             for d in devices:
                 print(d)
 
-    async def test_ble(self):
+    async def test_ble(self, data):
         try:
             print("connecting")
             await self.client.connect()
@@ -41,7 +41,7 @@ class BleComm():
                 print("After:", counter)
                 if counter == 30000:
                     break
-                await asyncio.sleep(.15)
+                await asyncio.sleep(.2)
         finally:
             print("Disconnecting")
             await self.client.disconnect()
@@ -77,7 +77,7 @@ class BleComm():
                 await self.client.write_gatt_char(CURRENT_DATA_UUID, ba)
                 # print("Done Writing Current Position!")
                 print(x, y, orient, target_orient)
-                await asyncio.sleep(.15)
+                await asyncio.sleep(.2)
         finally:
             print("Disconnecting")
             await self.client.disconnect()
