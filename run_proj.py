@@ -13,11 +13,13 @@ class Data():
     def __init__(self, top_left, bottom_right):
         self.top_left = top_left
         self.bottom_right = bottom_right
+        self.gui_bottom_right = (0, 0)
         self.target_pos = []
         self.current_pos = [200, 200]
         self.angle = 0
         self.width = bottom_right[0] - top_left[0]
         self.height = bottom_right[1] - top_left[1]
+        self.obstacle_pos = [(165, 56), (255, 86), (150, 41), (539, 370)]
 
 async def run_tk(root, interval=0.05):
     '''
@@ -35,8 +37,9 @@ async def main_async(root, ble_comm, ble_debug=False):
     
     def spawn_ble_listener():
         print("Spawn BLE")
+        root.reroute()
         if ble_debug:
-            return asyncio.ensure_future(ble_comm.test_ble(data))
+            return asyncio.ensure_future(ble_comm.test_var(data))
         else:
             return asyncio.ensure_future(ble_comm.send_msg(data))
 
@@ -44,14 +47,22 @@ async def main_async(root, ble_comm, ble_debug=False):
         print("Spawn CV")
         cv_dec = CV_Detector(data)
         return asyncio.ensure_future(cv_dec.run_cv())
+    
+    def spawn_obs_listener():
+        print("Spawn obstacles")
+        root.display_obstacles()
+        print(root.obstacle_grid)
 
     ttk.Button(root, text='Connect', command=spawn_ble_listener).grid()
-    ttk.Button(root, text='CV', command=spawn_cv_listener).grid()
+    ttk.Button(root, text='Detect Romi', command=spawn_cv_listener).grid()
+    ttk.Button(root, text='Detect Obstacles', command=spawn_obs_listener).grid()
     await run_tk(root)
 
 if __name__ == "__main__" :
     data = Data([150, 41], [540, 386])
-    address = "C0:98:E5:49:00:00"
+    # address = "A6C01837-C772-4ED8-9984-5A006FA27336"
+    address = "0880E3E7-E6A4-4367-A655-9C6E130303A9"
+    # address = "C0:98:E5:49:00:00"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--thread', action='store_true', default=False)

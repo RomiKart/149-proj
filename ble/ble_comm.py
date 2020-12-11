@@ -47,10 +47,10 @@ class BleComm():
             await self.client.disconnect()
             print("Disconnected")
 
-    # async def test_var(self, data):
-    #     while True:
-    #         print(data.target_pos)
-    #         await asyncio.sleep(5)
+    async def test_var(self, data):
+        while True:
+            print(data.target_pos)
+            await asyncio.sleep(5)
 
     async def send_msg(self, data):
         try:
