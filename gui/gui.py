@@ -171,8 +171,8 @@ class Gui(Tk):
         self.l2.grid(row=1, column=1)
     
     def world_to_grid(self, x, y):
-        row = (y - self.data.top_left[1]) // self.cell_to_world
-        col = (x - self.data.top_left[0]) // self.cell_to_world
+        row = (int) (y - self.data.top_left[1]) // self.cell_to_world
+        col = (int) (x - self.data.top_left[0]) // self.cell_to_world
         return row, col
     
     def grid_to_world(self, row, col):
@@ -197,6 +197,7 @@ class Gui(Tk):
         new_targets_gui = []
         cur_pos_gui = self.world_to_grid(self.data.current_pos[0], self.data.current_pos[1])
         cur_targets = [cur_pos_gui] + self.targets_gui
+        # print(cur_targets)
         for i in range(len(cur_targets) - 1):
             start = cur_targets[i]
             end = cur_targets[i + 1]
