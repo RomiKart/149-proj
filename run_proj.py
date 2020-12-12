@@ -34,10 +34,12 @@ async def run_tk(root, interval=0.05):
             raise
 
 async def main_async(root, ble_comm, ble_debug=False):
-    
+    obstacle_detection = False
     def spawn_ble_listener():
+        nonlocal obstacle_detection
         print("Spawn BLE")
-        root.reroute()
+        if obstacle_detection:
+            root.reroute()
         if ble_debug:
             return asyncio.ensure_future(ble_comm.test_var(data))
         else:
@@ -49,9 +51,11 @@ async def main_async(root, ble_comm, ble_debug=False):
         return asyncio.ensure_future(cv_dec.run_cv())
     
     def spawn_obs_listener():
+        nonlocal obstacle_detection
         print("Spawn obstacles")
         root.display_obstacles()
         print(root.obstacle_grid)
+        obstacle_detection = True
 
     ttk.Button(root, text='Connect', command=spawn_ble_listener).grid()
     ttk.Button(root, text='Detect Romi', command=spawn_cv_listener).grid()

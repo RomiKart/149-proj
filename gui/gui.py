@@ -106,7 +106,7 @@ class CellGrid(Canvas):
             self.addTargetPos(x, y)
             self.addTargetGui(cell.ord, cell.abs)
 
-        self.parent.coord_var.set("GUI: {}, {}\t CV: {}, {}".format(cell.abs, cell.ord, x, y))
+        self.parent.coord_var.set("GUI: {}, {}\t CV: {}, {}".format(cell.ord, cell.abs, x, y))
 
     def handleMouseMotion(self, event):
         row, column = self._eventCoords(event)
@@ -170,25 +170,70 @@ class Gui(Tk):
         self.l1.grid(row=1, column=0)
         self.l2.grid(row=1, column=1)
     
+    def world_to_grid(self, x, y):
+        row = (y - self.data.top_left[1]) // self.cell_to_world
+        col = (x - self.data.top_left[0]) // self.cell_to_world
+        return row, col
+    
+    def grid_to_world(self, row, col):
+        x = int((col + 0.5) * self.cell_to_world) + self.data.top_left[0]
+        y = int((row + 0.5) * self.cell_to_world) + self.data.top_left[1]
+        return x, y
+    
     def display_obstacles(self):
         if len(self.data.obstacle_pos) == 0:
             return
         
         for obs_pos in self.data.obstacle_pos:
             if obs_pos[0] < self.data.gui_bottom_right[0] and obs_pos[1] < self.data.gui_bottom_right[1]:
-                obs_row = (obs_pos[1] - self.data.top_left[1]) // self.cell_to_world
-                obs_col = (obs_pos[0] - self.data.top_left[0]) // self.cell_to_world
+                obs_row, obs_col = self.world_to_grid(obs_pos[0], obs_pos[1])
+                # obs_row = (obs_pos[1] - self.data.top_left[1]) // self.cell_to_world
+                # obs_col = (obs_pos[0] - self.data.top_left[0]) // self.cell_to_world
                 self.obstacle_grid[obs_row][obs_col] = 1
                 self.obstacle_gui.append((obs_row, obs_col))
         self.grid_widget.update_obstacles()
         
     def reroute(self):
-        for i in range(len(self.targets_gui) - 1):
-            start = self.targets_gui[i]
-            end = self.targets_gui[i + 1]
+        new_targets_gui = []
+        cur_pos_gui = self.world_to_grid(self.data.current_pos[0], self.data.current_pos[1])
+        cur_targets = [cur_pos_gui] + self.targets_gui
+        for i in range(len(cur_targets) - 1):
+            start = cur_targets[i]
+            end = cur_targets[i + 1]
             path = astar(self.obstacle_grid, start, end)
-            print(path)
-
+            # print(path)
+            pruned_path = self.prune_paths(path)
+            # print(pruned_path)
+            new_targets_gui += pruned_path
+        
+        new_targets_world = []
+        for t in new_targets_gui:
+            new_targets_world.append(self.grid_to_world(t[0], t[1]))
+        print("Old Targets World:", self.data.target_pos)
+        print("Old Targets Gui:", self.targets_gui)
+        print("New Targets Gui:", new_targets_gui)
+        print("New Targets World:", new_targets_world)
+        self.data.target_pos = new_targets_world
+    
+    def prune_paths(self, path):
+        if len(path) < 3:
+            return path
+        pruned_path = []
+        for i in range(1, len(path) - 1):
+            cur = path[i]
+            prv = path[i-1]
+            nxt = path[i+1]
+            if cur[0] == prv[0] and cur[0] == nxt[0]:
+                continue
+            elif cur[1] == prv[1] and cur[1] == nxt[1]:
+                continue
+            else:
+                pruned_path.append(cur)
+        
+        # append last element 
+        # (first element is ignored since its added by prev call to prune)
+        pruned_path.append(path[-1])
+        return pruned_path
 
 # Credit for this: Nicholas Swift
 # as found at https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
