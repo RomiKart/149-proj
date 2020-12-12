@@ -73,6 +73,7 @@ static bool ready2 = false;
 static uint32_t num_pause = 0;
 static bool avg_flag = false;
 static float avg_orient = 0;
+static float avg_orient_360 = 0;
 static bool timing = false;
 static uint32_t num_drive = 0;
 /*******************************************************************************
@@ -86,7 +87,16 @@ void ble_evt_write(ble_evt_t const* p_ble_evt) {
       printf("Got current position!\n");
       ready2 = true;
       if (avg_flag) {
-        avg_orient += current_pos[2];
+        if (current_pos[2] > 350) {
+          avg_orient_360 += current_pos[2];
+          avg_orient += current_pos[2] - 360;
+        } else if (current_pos[2] < 10) {
+          avg_orient += current_pos[2];
+          avg_orient_360 += current_pos[2] + 360;
+        } else {
+          avg_orient += current_pos[2];
+          avg_orient_360 += current_pos[2];
+        }
         num_pause += 1;
       }
 
@@ -186,7 +196,7 @@ int main(void) {
   float subtarget_y = 0;
   float target_orient = 0;
   
-  float angle_tolerance = 2.5;
+  float angle_tolerance = 3;
   float dist_tolerance = 10;
   uint32_t subtarget_ind = 0;
   float angle_to_travel = 0;
@@ -208,7 +218,7 @@ int main(void) {
   uint32_t num_pause_init = 0;
   float drive_orient = 0;
   int delta_correction = 0;
-  float angle_scale = 9;
+  float angle_scale = 9.3;
 
   // loop forever, running state machine
   while (1) {
@@ -364,6 +374,7 @@ int main(void) {
             num_pause = 0;
             num_pause_init = num_pause;
             avg_orient = 0;
+            avg_orient_360 = 0;
             avg_flag = true;
         } else {
           // perform state-specific actions here
@@ -391,6 +402,7 @@ int main(void) {
           num_pause = 0;
           num_pause_init = num_pause;
           avg_orient = 0;
+          avg_orient_360 = 0;
           avg_flag = true;
           // state = OFF;
           // ready = false;
@@ -409,7 +421,8 @@ int main(void) {
         if (num_pause - num_pause_init >= 10) {
           avg_flag = false;
           avg_orient = avg_orient / (num_pause - num_pause_init);
-          if ((avg_orient <= (target_orient + angle_tolerance)) && (avg_orient >= (target_orient - angle_tolerance))) {
+          avg_orient_360 = avg_orient_360 / (num_pause - num_pause_init);
+          if (((avg_orient <= (target_orient + angle_tolerance)) && (avg_orient >= (target_orient - angle_tolerance))) || ((avg_orient_360 <= (target_orient + angle_tolerance)) && (avg_orient_360 >= (target_orient - angle_tolerance)))) {
             state = DRIVING;
             prev_l_pos = sensors.leftWheelEncoder;
             prev_r_pos = sensors.rightWheelEncoder;
@@ -451,6 +464,7 @@ int main(void) {
 
       case SUBTARGET_REACHED: {
         if ((subtarget_ind >= num_targets) || ((current_x >= start_x - dist_tolerance) && (current_x <= start_x + dist_tolerance)) && ((current_y >= start_y - dist_tolerance) && (current_y <= start_y + dist_tolerance)))  { // -> OFF
+        // if (subtarget_ind >= num_targets || subtarget_y == 0 || subtarget_x == 0) {  
           state = OFF;
           ready = false;
           ready2 = false;
@@ -461,6 +475,7 @@ int main(void) {
           num_pause = 0;
           num_pause_init = num_pause;
           avg_orient = 0;
+          avg_orient_360 = 0;
           avg_flag = true;
         }
         break;
@@ -487,6 +502,7 @@ int main(void) {
           num_pause = 0;
           num_pause_init = num_pause;
           avg_orient = 0;
+          avg_orient_360 = 0;
           avg_flag = true;
           // state = OFF;
           // ready = false;
