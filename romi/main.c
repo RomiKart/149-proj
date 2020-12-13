@@ -189,7 +189,11 @@ int main(void) {
   //uint16_t position = 0;
   int16_t l_fwd = 35;
   int16_t r_fwd = 40;
-  int16_t turn = 30;
+  // int16_t l_fwd = 75;
+  // int16_t r_fwd = 80;
+  // int16_t turn = 30;
+  int16_t turn = 45;
+  int16_t turn_correction = 35;
   float current_x = 0;
   float current_y = 0;
   float subtarget_x = 0;
@@ -219,6 +223,7 @@ int main(void) {
   float drive_orient = 0;
   int delta_correction = 0;
   float angle_scale = 9.3;
+  bool orient_correction = false;
 
   // loop forever, running state machine
   while (1) {
@@ -234,10 +239,10 @@ int main(void) {
     subtarget_x = target_pos[subtarget_ind];
     subtarget_y = target_pos[subtarget_ind+1];
 
-    if (subtarget_x == 0 || subtarget_y == 0) {
-      subtarget_x = start_x;
-      subtarget_y = start_y;
-    }
+    // if (subtarget_x == 0 || subtarget_y == 0) {
+    //   subtarget_x = start_x;
+    //   subtarget_y = start_y;
+    // }
 
     current_x = current_pos[0];
     current_y = current_pos[1]; 
@@ -261,17 +266,21 @@ int main(void) {
           if (target_orient <= current_orient) {
               if (current_orient - target_orient <= 180) {
                 state = TURN_LEFT;
+                orient_correction = false;
                 angle_to_travel = current_orient - target_orient;
               } else {
                 state = TURN_RIGHT;
+                orient_correction = false;
                 angle_to_travel = 360 - current_orient + target_orient;
               }
           } else {
             if (target_orient - current_orient <= 180) {
               state = TURN_RIGHT;
+              orient_correction = false;
               angle_to_travel = target_orient - current_orient;
             } else {
               state = TURN_LEFT;
+              orient_correction = false;
               angle_to_travel = 360 - target_orient + current_orient;
             }
           }
@@ -280,6 +289,7 @@ int main(void) {
           num_drive = 0;
           num_drive_init = num_drive;
           state = DRIVING;
+          orient_correction = false;
           // state = OFF;
           subtarget_ind = 0;
           prev_l_pos = sensors.leftWheelEncoder;
@@ -359,6 +369,7 @@ int main(void) {
         if (((current_x >= subtarget_x - dist_tolerance) && (current_x <= subtarget_x + dist_tolerance)) && ((current_y >= subtarget_y - dist_tolerance) && (current_y <= subtarget_y + dist_tolerance))) {
           state = SUBTARGET_REACHED;
           timing = false;
+          orient_correction = false;
           // num_drive = 0;
           // num_drive_init = 0;
           subtarget_ind += 2;
@@ -369,6 +380,7 @@ int main(void) {
             count = 0;
             to_pause = false; 
             timing = false;
+            orient_correction = false;
             // num_drive = 0;
             // num_drive_init = 0;
             num_pause = 0;
@@ -404,12 +416,17 @@ int main(void) {
           avg_orient = 0;
           avg_orient_360 = 0;
           avg_flag = true;
+          orient_correction = true;
           // state = OFF;
           // ready = false;
           lsm9ds1_stop_gyro_integration();
         } else {
           state = TURN_RIGHT;
-          kobukiDriveDirect(turn, -turn);
+          if (orient_correction) {
+            kobukiDriveDirect(turn_correction, -turn_correction);
+          } else {
+            kobukiDriveDirect(turn, -turn);
+          }
           printf("TURN_RIGHT\t%f\n", target_orient);
           display_write("TURN_RIGHT", DISPLAY_LINE_0);
         }
@@ -430,6 +447,7 @@ int main(void) {
             num_drive_init = num_drive;
             count = 0;
             timing = true;
+            orient_correction = false;
             drive_orient = target_orient;
             prev_dist = (current_x - subtarget_x) * (current_x - subtarget_x) + (current_y - subtarget_y) * (current_y - subtarget_y);
             // state = OFF;
@@ -463,8 +481,8 @@ int main(void) {
       }
 
       case SUBTARGET_REACHED: {
-        if ((subtarget_ind >= num_targets) || ((current_x >= start_x - dist_tolerance) && (current_x <= start_x + dist_tolerance)) && ((current_y >= start_y - dist_tolerance) && (current_y <= start_y + dist_tolerance)))  { // -> OFF
-        // if (subtarget_ind >= num_targets || subtarget_y == 0 || subtarget_x == 0) {  
+        // if ((subtarget_ind >= num_targets) || ((current_x >= start_x - dist_tolerance) && (current_x <= start_x + dist_tolerance)) && ((current_y >= start_y - dist_tolerance) && (current_y <= start_y + dist_tolerance)))  { // -> OFF
+        if (subtarget_ind >= num_targets || subtarget_y == 0 || subtarget_x == 0) {  
           state = OFF;
           ready = false;
           ready2 = false;
@@ -477,6 +495,7 @@ int main(void) {
           avg_orient = 0;
           avg_orient_360 = 0;
           avg_flag = true;
+          orient_correction = false;
         }
         break;
       }
@@ -504,6 +523,7 @@ int main(void) {
           avg_orient = 0;
           avg_orient_360 = 0;
           avg_flag = true;
+          orient_correction = true;
           // state = OFF;
           // ready = false;
           //position = sensors.leftWheelEncoder;
@@ -511,7 +531,11 @@ int main(void) {
           // pos_elapsed = num_pause;
         } else {
           state = TURN_LEFT;
-          kobukiDriveDirect(-turn, turn);
+          if (orient_correction) {
+            kobukiDriveDirect(-turn_correction, turn_correction);
+          } else {
+            kobukiDriveDirect(-turn, turn);
+          }
           printf("TURN_LEFT\t%f\n", target_orient);
           display_write("TURN_LEFT", DISPLAY_LINE_0);
         }
