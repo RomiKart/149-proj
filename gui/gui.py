@@ -231,10 +231,12 @@ class Gui(Tk):
                 end = cur_targets[i + 1]
                 if self.is_astar_required(start, end):
                     path = astar(self.obstacle_grid, start, end, allow_diagonal_movement=True)
-                    pruned_path = self.prune_paths(path)
-                    new_targets_gui += pruned_path
+                    # pruned_path = self.prune_paths(path)
+                    # new_targets_gui += pruned_path
+                    new_targets_gui += path[1:]
                 else:
                     new_targets_gui.append(end)
+            new_targets_gui = self.prune_paths([cur_pos_gui] + new_targets_gui)
             
         else:
             new_targets_gui = self.prune_paths(cur_targets)
@@ -271,11 +273,27 @@ class Gui(Tk):
             cur = path[i]
             prv = path[i-1]
             nxt = path[i+1]
-            if cur[0] == prv[0] and cur[0] == nxt[0]:
+            if cur[0] == prv[0] and cur[0] == nxt[0]: # same row
                 continue
-            elif cur[1] == prv[1] and cur[1] == nxt[1]:
+            elif cur[1] == prv[1] and cur[1] == nxt[1]: # same col
                 continue
             else:
+                a = nxt[0] - cur[0]
+                b = nxt[1] - cur[1]
+                c = cur[0] - prv[0]
+                d = cur[1] - prv[1]
+
+                if np.all([a, b, c, d]):
+                    slope_prv = c/d
+                    slope_nxt = a/b
+                    
+                    if abs(slope_prv) == 1 and abs(slope_nxt) == 1 and slope_prv == slope_nxt:
+                        row_sign = np.sign([a, c])
+                        col_sign = np.sign([b, d])
+                        # print(prv, cur, nxt)
+                        # print(slope_prv, slope_nxt)
+                        if row_sign[0] == row_sign[1] and col_sign[0] == col_sign[1]:
+                            continue
                 pruned_path.append(cur)
         
         # append last element 
