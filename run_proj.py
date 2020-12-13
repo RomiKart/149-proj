@@ -65,8 +65,8 @@ async def main_async(root, ble_comm, ble_debug=False):
 if __name__ == "__main__" :
     data = Data([150, 41], [540, 386])
     # address = "A6C01837-C772-4ED8-9984-5A006FA27336"
-    address = "0880E3E7-E6A4-4367-A655-9C6E130303A9"
-    # address = "C0:98:E5:49:00:00"
+    # address = "0880E3E7-E6A4-4367-A655-9C6E130303A9"
+    address = "C0:98:E5:49:00:00"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--thread', action='store_true', default=False)

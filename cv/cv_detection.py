@@ -204,13 +204,13 @@ class CV_Detector():
     def detect_obstacles(self):
         print ("Running obstacle detection")
         # define a video capture object
-        vid = cv2.VideoCapture(0)
+        vid = cv2.VideoCapture(1)
         count = 0
         # obstacle_pts = []
         while count < 10:
             ret, frame = vid.read()
             if frame is not None:
-                h, status = cv2.findHomography(pts_camera, pts_actual)
+                h, status = cv2.findHomography(self.pts_camera, self.pts_actual)
                 height, width, channels = frame.shape
                 image = cv2.warpPerspective(frame, h, (width, height))
 
@@ -240,10 +240,11 @@ class CV_Detector():
                         x,y,w,h = cv2.boundingRect(c)
                         cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
                         area = cv2.contourArea(c)
-                        if area > 110 and < 150000:
+                        # print(area)
+                        if (area > 110) and (area < 10000):
                             obstacle_pts.append(cv2.boundingRect(c))
                         # show the image
-                        cv2.imshow("Image", image)
+                        # cv2.imshow("Image", image)
                         # cv2.waitKey(0)
                 count += 1
         self.data.obstacle_pos = obstacle_pts
