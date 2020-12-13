@@ -4,7 +4,7 @@ import math
 import numpy as np
 
 # define a video capture object
-vid = cv2.VideoCapture(0)
+vid = cv2.VideoCapture(1)
 # width = 600
 # height = 400
 # count = 0
@@ -29,7 +29,7 @@ while(True):
     if frame is not None:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        thresh = cv2.threshold(blurred, 65, 255, cv2.THRESH_BINARY_INV)[1]
+        thresh = cv2.threshold(blurred, 35, 255, cv2.THRESH_BINARY_INV)[1]
 
         cv2.imshow("gray", gray)
         cv2.imshow("blurred", blurred)
@@ -58,7 +58,7 @@ while(True):
 
                 # show the image
                 cv2.imshow("frame", frame)
-                cv2.waitKey(0)
+                # cv2.waitKey(0)
 
 
     if cv2.waitKey(1) & 0xFF == ord('q'):

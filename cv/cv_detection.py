@@ -163,7 +163,7 @@ class CV_Detector():
                 self.data.current_pos = [(blue_pos[0] + green_pos[0]) // 2, (blue_pos[1] + green_pos[1]) // 2]
                 # self.data.current_pos = blue_pos
                 self.data.angle = angle
-                cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
+                # cv2.namedWindow('frame',cv2.WINDOW_NORMAL)
                 # # cv2.setMouseCallback("frame", onMouse)
                 # cv2.imshow('frame', frame)
 
@@ -175,7 +175,7 @@ class CV_Detector():
                 # cv2.circle(homographized, (345, 266), 2, (255,255,255), 3)
                 for i, target in enumerate(self.data.target_pos):
                     # cv2.circle(homographized, target, 2, (255, 255, 255), 3)
-                    cv2.putText(frame, i, target, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                    cv2.putText(homographized, str(i + 1), target, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                 
                 if self.data.obs_detection:
                     for x, y, w, h in self.data.obstacle_pos:
