@@ -173,6 +173,11 @@ class CV_Detector():
                 # cv2.circle(homographized, (345, 266), 2, (255,255,255), 3)
                 for target in self.data.target_pos:
                     cv2.circle(homographized, target, 2, (255, 255, 255), 3)
+                
+                if self.data.obs_detection:
+                    for x, y, w, h in self.data.obstacle_pos:
+                        cv2.rectangle(homographized, (x, y), (x + w, y + h), (36,255,12), 2)
+                
                 cv2.imshow("Homography", homographized)
                 
 

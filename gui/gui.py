@@ -219,6 +219,7 @@ class Gui(Tk):
     def reroute(self):
         new_targets_gui = []
         cur_pos_gui = self.world_to_grid(self.data.current_pos[0], self.data.current_pos[1])
+        # print(cur_pos_gui)
         cur_targets = [cur_pos_gui] + self.targets_gui
         # print(cur_targets)
         if self.data.obs_detection:
@@ -230,7 +231,7 @@ class Gui(Tk):
                     pruned_path = self.prune_paths(path)
                     new_targets_gui += pruned_path
                 else:
-                    new_targets_gui.append(start)
+                    new_targets_gui.append(end)
             
         else:
             new_targets_gui = self.prune_paths(cur_targets)
