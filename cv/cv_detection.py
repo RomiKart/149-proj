@@ -178,7 +178,7 @@ class CV_Detector():
                     for x, y, w, h in self.data.obstacle_pos:
                         cv2.rectangle(homographized, (x, y), (x + w, y + h), (36,255,12), 2)
                 
-                cv2.imshow("Homography", homographized)
+                cv2.imshow("Camera Feed (Homographized)", homographized)
                 
 
             # dst = cv2.Canny(frame, 100, 150, None, 3)

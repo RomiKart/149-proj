@@ -160,6 +160,7 @@ class Gui(Tk):
 
     
     def widgets(self, num_rows, num_cols, gui_debug):
+        self.winfo_toplevel().title("RomiKart")
         self.grid_widget = CellGrid(self, num_rows, num_cols, 50, gui_debug)
         self.l1 = ttk.Label(self, text="Coordinates")
         self.coord_var = StringVar()
