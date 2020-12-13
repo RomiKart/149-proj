@@ -175,12 +175,19 @@ class Gui(Tk):
         col = (int) (x - self.data.top_left[0]) // self.cell_to_world
         return row, col
     
+    def world_to_grid_clipped(self, x, y):
+        row = (int) (y - self.data.top_left[1]) // self.cell_to_world
+        col = (int) (x - self.data.top_left[0]) // self.cell_to_world
+        row = min(max(0, row), self.num_rows - 1)
+        col = min(max(0, col), self.num_cols - 1)
+        return row, col
+    
     def grid_to_world(self, row, col):
         x = int((col + 0.5) * self.cell_to_world) + self.data.top_left[0]
         y = int((row + 0.5) * self.cell_to_world) + self.data.top_left[1]
         return x, y
     
-    def display_obstacles(self):
+    def display_obstacles_old(self):
         if len(self.data.obstacle_pos) == 0:
             return
         
@@ -191,6 +198,21 @@ class Gui(Tk):
                 # obs_col = (obs_pos[0] - self.data.top_left[0]) // self.cell_to_world
                 self.obstacle_grid[obs_row][obs_col] = 1
                 self.obstacle_gui.append((obs_row, obs_col))
+        self.grid_widget.update_obstacles()
+    
+    def display_obstacles(self):
+        if len(self.data.obstacle_pos) == 0:
+            return
+        
+        for obs_pos in self.data.obstacle_pos:
+            x, y, w, h = obs_pos
+            top_left_gui = self.world_to_grid_clipped(x, y)
+            bottom_right_gui = self.world_to_grid_clipped(x + w, y + h)
+            for row_i in range(top_left_gui[0], bottom_right_gui[0] + 1):
+                for col_j in range(top_left_gui[1], bottom_right_gui[1] + 1):
+                    self.obstacle_grid[row_i][col_j] = 1
+                    self.obstacle_gui.append((row_i, col_j))
+
         self.grid_widget.update_obstacles()
         
     def reroute(self):

@@ -15,7 +15,7 @@ class Data():
         self.bottom_right = bottom_right
         self.gui_bottom_right = (0, 0)
         self.target_pos = []
-        self.current_pos = [200, 200]
+        self.current_pos = [200.5, 200.5]
         self.angle = 0
         self.width = bottom_right[0] - top_left[0]
         self.height = bottom_right[1] - top_left[1]
@@ -35,6 +35,7 @@ async def run_tk(root, interval=0.05):
 
 async def main_async(root, ble_comm, ble_debug=False):
     obstacle_detection = False
+    cv_det = CV_Detector(data)
     def spawn_ble_listener():
         nonlocal obstacle_detection
         print("Spawn BLE")
@@ -47,12 +48,11 @@ async def main_async(root, ble_comm, ble_debug=False):
 
     def spawn_cv_listener():
         print("Spawn CV")
-        cv_dec = CV_Detector(data)
-        return asyncio.ensure_future(cv_dec.run_cv())
+        return asyncio.ensure_future(cv_det.run_cv())
     
     def spawn_obs_listener():
         nonlocal obstacle_detection
-        print("Spawn obstacles")
+        cv_det.detect_obstacles()
         root.display_obstacles()
         print(root.obstacle_grid)
         obstacle_detection = True

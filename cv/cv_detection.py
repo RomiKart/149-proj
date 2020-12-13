@@ -9,6 +9,8 @@ class CV_Detector():
 
     def __init__(self, data):
         self.data = data
+        self.pts_actual = np.array([[150, 386], [540, 386], [540, 41],[150, 41]]) # from top down image
+        self.pts_camera = np.array([[64, 412], [573, 402],[477, 102],[143, 92]]) # from camera feed
 
     async def run_cv(self):
         print ("Running CV")
@@ -194,6 +196,57 @@ class CV_Detector():
             # adjCoord = cv2.perspectiveTransform(frame, h) # convert camera coords to actual coords
             # print(adjCoord) # print actual coordinate for converted point (ie robot position?)
 
+        # After the loop release the cap object
+        vid.release()
+        # Destroy all the windows
+        cv2.destroyAllWindows()
+    
+    def detect_obstacles(self):
+        print ("Running obstacle detection")
+        # define a video capture object
+        vid = cv2.VideoCapture(0)
+        count = 0
+        # obstacle_pts = []
+        while count < 10:
+            ret, frame = vid.read()
+            if frame is not None:
+                h, status = cv2.findHomography(pts_camera, pts_actual)
+                height, width, channels = frame.shape
+                image = cv2.warpPerspective(frame, h, (width, height))
+
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+                thresh = cv2.threshold(blurred, 65, 255, cv2.THRESH_BINARY_INV)[1]
+
+                cv2.imshow("thresh", thresh)
+                # find contours in the thresholded image
+                cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                    cv2.CHAIN_APPROX_SIMPLE)
+                cnts = cnts[0]
+                obstacle_pts = []
+                # loop over the contours
+                for c in cnts:
+                    # compute the center of the contour
+                    M = cv2.moments(c)
+                    if M["m00"] != 0:
+                        cX = int(M["m10"] / M["m00"])
+                        cY = int(M["m01"] / M["m00"])
+                        # draw the contour and center of the shape on the image
+                        cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
+                        cv2.circle(image, (cX, cY), 7, (255, 255, 255), -1)
+                        cv2.putText(image, "center", (cX - 20, cY - 20),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        
+                        x,y,w,h = cv2.boundingRect(c)
+                        cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
+                        area = cv2.contourArea(c)
+                        if area > 110 and < 150000:
+                            obstacle_pts.append(cv2.boundingRect(c))
+                        # show the image
+                        cv2.imshow("Image", image)
+                        # cv2.waitKey(0)
+                count += 1
+        self.data.obstacle_pos = obstacle_pts
         # After the loop release the cap object
         vid.release()
         # Destroy all the windows
