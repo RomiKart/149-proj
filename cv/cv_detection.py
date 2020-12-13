@@ -248,6 +248,7 @@ class CV_Detector():
                         # cv2.waitKey(0)
                 count += 1
         self.data.obstacle_pos = obstacle_pts
+        self.data.obs_detection = True
         # After the loop release the cap object
         vid.release()
         # Destroy all the windows

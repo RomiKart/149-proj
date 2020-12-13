@@ -19,7 +19,8 @@ class Data():
         self.angle = 0
         self.width = bottom_right[0] - top_left[0]
         self.height = bottom_right[1] - top_left[1]
-        self.obstacle_pos = [(165, 56), (255, 86), (150, 41), (539, 370)]
+        self.obstacle_pos = []
+        self.obs_detection = False
 
 async def run_tk(root, interval=0.05):
     '''
@@ -34,13 +35,10 @@ async def run_tk(root, interval=0.05):
             raise
 
 async def main_async(root, ble_comm, ble_debug=False):
-    obstacle_detection = False
     cv_det = CV_Detector(data)
     def spawn_ble_listener():
-        nonlocal obstacle_detection
         print("Spawn BLE")
-        if obstacle_detection:
-            root.reroute()
+        root.reroute()
         if ble_debug:
             return asyncio.ensure_future(ble_comm.test_var(data))
         else:
@@ -51,7 +49,6 @@ async def main_async(root, ble_comm, ble_debug=False):
         return asyncio.ensure_future(cv_det.run_cv())
     
     def spawn_obs_listener():
-        nonlocal obstacle_detection
         cv_det.detect_obstacles()
         root.display_obstacles()
         print(root.obstacle_grid)

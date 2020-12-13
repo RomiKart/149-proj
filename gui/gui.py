@@ -208,7 +208,8 @@ class Gui(Tk):
             x, y, w, h = obs_pos
             top_left_gui = self.world_to_grid_clipped(x, y)
             bottom_right_gui = self.world_to_grid_clipped(x + w, y + h)
-            for row_i in range(top_left_gui[0], bottom_right_gui[0] + 1):
+            min_row = max(0, top_left_gui[0] - 1)
+            for row_i in range(min_row, bottom_right_gui[0] + 1):
                 for col_j in range(top_left_gui[1], bottom_right_gui[1] + 1):
                     self.obstacle_grid[row_i][col_j] = 1
                     self.obstacle_gui.append((row_i, col_j))
@@ -220,14 +221,19 @@ class Gui(Tk):
         cur_pos_gui = self.world_to_grid(self.data.current_pos[0], self.data.current_pos[1])
         cur_targets = [cur_pos_gui] + self.targets_gui
         # print(cur_targets)
-        for i in range(len(cur_targets) - 1):
-            start = cur_targets[i]
-            end = cur_targets[i + 1]
-            path = astar(self.obstacle_grid, start, end)
-            # print(path)
-            pruned_path = self.prune_paths(path)
-            # print(pruned_path)
-            new_targets_gui += pruned_path
+        if self.data.obs_detection:
+            for i in range(len(cur_targets) - 1):
+                start = cur_targets[i]
+                end = cur_targets[i + 1]
+                if is_astar_required(start, end):
+                    path = astar(self.obstacle_grid, start, end)
+                    pruned_path = self.prune_paths(path)
+                    new_targets_gui += pruned_path
+                else:
+                    new_targets_gui.append(start)
+            
+        else:
+            new_targets_gui = self.prune_paths(cur_targets)
         
         new_targets_world = []
         for t in new_targets_gui:
@@ -237,10 +243,25 @@ class Gui(Tk):
         print("New Targets Gui:", new_targets_gui)
         print("New Targets World:", new_targets_world)
         self.data.target_pos = new_targets_world
+
+    def is_astar_required(self, start, end):
+        required = False
+        
+        min_row = min(start[0], end[0])
+        min_col = min(start[1], end[1])
+        max_row = max(start[0], end[0])
+        max_col = max(start[1], end[1])
+
+        for r in range(min_row, max_row + 1):
+            for c in range(min_col, max_col + 1):
+                if self.obstacle_grid[r][c] == 1:
+                    required = True
+                    break
+        return required
     
     def prune_paths(self, path):
         if len(path) < 3:
-            return path
+            return path[1:]
         pruned_path = []
         for i in range(1, len(path) - 1):
             cur = path[i]
@@ -257,6 +278,7 @@ class Gui(Tk):
         # (first element is ignored since its added by prev call to prune)
         pruned_path.append(path[-1])
         return pruned_path
+
 
 # Credit for this: Nicholas Swift
 # as found at https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
