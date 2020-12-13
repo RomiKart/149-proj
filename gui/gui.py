@@ -226,7 +226,7 @@ class Gui(Tk):
             for i in range(len(cur_targets) - 1):
                 start = cur_targets[i]
                 end = cur_targets[i + 1]
-                if is_astar_required(start, end):
+                if self.is_astar_required(start, end):
                     path = astar(self.obstacle_grid, start, end)
                     pruned_path = self.prune_paths(path)
                     new_targets_gui += pruned_path
