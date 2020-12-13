@@ -168,8 +168,8 @@ class Gui(Tk):
         self.l2 = ttk.Label(self, textvariable=self.coord_var)
         
         self.grid_widget.grid(row=0, column=0, columnspan=2)
-        self.l1.grid(row=1, column=0)
-        self.l2.grid(row=1, column=1)
+        # self.l1.grid(row=1, column=0)
+        self.l2.grid(row=1, column=0, columnspan=2)
     
     def world_to_grid(self, x, y):
         row = (int) (y - self.data.top_left[1]) // self.cell_to_world
@@ -209,9 +209,11 @@ class Gui(Tk):
             x, y, w, h = obs_pos
             top_left_gui = self.world_to_grid_clipped(x, y)
             bottom_right_gui = self.world_to_grid_clipped(x + w, y + h)
-            min_row = max(0, top_left_gui[0] - 1)
+            min_row = max(0, top_left_gui[0] - 1) # padding top row
+            min_col = max(0, top_left_gui[1] - 1) # padding left column
+            max_col = min(bottom_right_gui[1] + 1, self.num_cols) # padding right column
             for row_i in range(min_row, bottom_right_gui[0] + 1):
-                for col_j in range(top_left_gui[1], bottom_right_gui[1] + 1):
+                for col_j in range(min_col, max_col + 1):
                     self.obstacle_grid[row_i][col_j] = 1
                     self.obstacle_gui.append((row_i, col_j))
 
@@ -228,7 +230,7 @@ class Gui(Tk):
                 start = cur_targets[i]
                 end = cur_targets[i + 1]
                 if self.is_astar_required(start, end):
-                    path = astar(self.obstacle_grid, start, end)
+                    path = astar(self.obstacle_grid, start, end, allow_diagonal_movement=True)
                     pruned_path = self.prune_paths(path)
                     new_targets_gui += pruned_path
                 else:
