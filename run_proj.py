@@ -52,11 +52,15 @@ async def main_async(root, ble_comm, ble_debug=False):
         cv_det.detect_obstacles()
         root.display_obstacles()
         print(root.obstacle_grid)
-        obstacle_detection = True
+    
+    def spawn_corner_listener():
+        print("Detecting corners")
+        cv_det.detect_corners()
 
     ttk.Button(root, text='Connect', command=spawn_ble_listener).grid()
     ttk.Button(root, text='Detect Romi', command=spawn_cv_listener).grid()
     ttk.Button(root, text='Detect Obstacles', command=spawn_obs_listener).grid()
+    ttk.Button(root, text='Calibrate', command=spawn_corner_listener).grid()
     await run_tk(root)
 
 if __name__ == "__main__" :

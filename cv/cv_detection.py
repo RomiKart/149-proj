@@ -9,8 +9,15 @@ class CV_Detector():
 
     def __init__(self, data):
         self.data = data
+        # bottom left, bottom right, top right, top left
         self.pts_actual = np.array([[150, 386], [540, 386], [540, 41],[150, 41]]) # from top down image
         self.pts_camera = np.array([[64, 412], [573, 402],[477, 102],[143, 92]]) # from camera feed
+        h, status = cv2.findHomography(self.pts_camera, self.pts_actual)
+        self.h = h
+    
+    def update_h(self):
+        h, status = cv2.findHomography(self.pts_camera, self.pts_actual)
+        self.h = h
 
     async def run_cv(self):
         print ("Running CV")
@@ -75,14 +82,9 @@ class CV_Detector():
                 # pts_actual = np.array([[132, 391], [564, 381], [520, 43],[158, 39]]) # from top down image
                 # pts_camera = np.array([[98, 351], [570, 349],[481, 78],[162, 67]]) # from camera feed
 
-                # Actual run
-                pts_actual = np.array([[150, 386], [540, 386], [540, 41],[150, 41]]) # from top down image
-                pts_camera = np.array([[64, 412], [573, 402],[477, 102],[143, 92]]) # from camera feed
-
-                h, status = cv2.findHomography(pts_camera, pts_actual)
-                
+                # Actual run                
                 height, width, channels = frame.shape
-                homographized = cv2.warpPerspective(gaus_blur_frame, h, (width, height))
+                homographized = cv2.warpPerspective(gaus_blur_frame, self.h, (width, height))
 
                 hsv_frame = cv2.cvtColor(homographized, cv2.COLOR_BGR2HSV)
 
@@ -171,8 +173,9 @@ class CV_Detector():
                 # cv2.circle(homographized, (345, 206), 2, (255,255,255), 3)
                 # cv2.circle(homographized, (345, 236), 2, (255,255,255), 3)
                 # cv2.circle(homographized, (345, 266), 2, (255,255,255), 3)
-                for target in self.data.target_pos:
-                    cv2.circle(homographized, target, 2, (255, 255, 255), 3)
+                for i, target in enumerate(self.data.target_pos):
+                    # cv2.circle(homographized, target, 2, (255, 255, 255), 3)
+                    cv2.putText(frame, i, target, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                 
                 if self.data.obs_detection:
                     for x, y, w, h in self.data.obstacle_pos:
@@ -215,9 +218,9 @@ class CV_Detector():
         while count < 10:
             ret, frame = vid.read()
             if frame is not None:
-                h, status = cv2.findHomography(self.pts_camera, self.pts_actual)
+                # h, status = cv2.findHomography(self.pts_camera, self.pts_actual)
                 height, width, channels = frame.shape
-                image = cv2.warpPerspective(frame, h, (width, height))
+                image = cv2.warpPerspective(frame, self.h, (width, height))
 
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -254,6 +257,87 @@ class CV_Detector():
                 count += 1
         self.data.obstacle_pos = obstacle_pts
         self.data.obs_detection = True
+        # After the loop release the cap object
+        vid.release()
+        # Destroy all the windows
+        cv2.destroyAllWindows()
+
+
+    def detect_corners(self):
+        print ("Running corner detection")
+        # define a video capture object
+        vid = cv2.VideoCapture(1)
+        
+        # ignore first ten frames
+        count = 0
+        while count < 10:
+            ret, frame = vid.read()
+            if frame is not None:
+                count += 1
+
+        ret, frame = vid.read()
+        while frame is None:
+              ret, frame = vid.read()
+
+        if frame is not None:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+            thresh = cv2.threshold(blurred, 35, 255, cv2.THRESH_BINARY_INV)[1]
+
+            # find contours in the thresholded image
+            cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                cv2.CHAIN_APPROX_SIMPLE)
+            cnts = cnts[0]
+
+            four_corners = []
+            # loop over the contours
+            for c in cnts:
+                # compute the center of the contour
+                M = cv2.moments(c)
+                if M["m00"] != 0:
+                    cX = int(M["m10"] / M["m00"])
+                    cY = int(M["m01"] / M["m00"])
+                    
+
+                    area = cv2.contourArea(c)
+                    print(area)
+                    if area < 50:
+                        four_corners.append((cX, cY))
+                        # draw the contour and center of the shape on the image
+                        cv2.drawContours(frame, [c], -1, (0, 255, 0), 2)
+                        cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
+                        cv2.putText(frame, "center", (cX - 20, cY - 20),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        
+                        x,y,w,h = cv2.boundingRect(c)
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (36,255,12), 2)
+
+
+            if len(four_corners) == 4:
+                tl = None
+                tr = None
+                bl = None
+                br = None
+                x_sort = sorted(four_corners, key=lambda x:x[0])
+                y_sort = sorted(four_corners, key=lambda x:x[1])
+
+                for pt in four_corners:
+                    if x_sort.index(pt) < 2 and y_sort.index(pt) < 2:
+                        tl = pt
+                    elif x_sort.index(pt) < 2 and y_sort.index(pt) >= 2:
+                        bl = pt
+                    elif x_sort.index(pt) >= 2 and y_sort.index(pt) < 2:
+                        tr = pt
+                    elif x_sort.index(pt) >= 2 and y_sort.index(pt) >= 2:
+                        br = pt
+                
+                final_lst = np.array([bl, br, tr, tl])
+                print(final_lst)
+                self.pts_camera = final_lst
+                self.update_h()
+            # show the image
+            cv2.imshow("frame", frame)
+            cv2.waitKey(0)
         # After the loop release the cap object
         vid.release()
         # Destroy all the windows
