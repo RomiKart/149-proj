@@ -4,7 +4,7 @@ import math
 import numpy as np
 
 # define a video capture object
-vid = cv2.VideoCapture(1)
+vid = cv2.VideoCapture(0)
 # width = 600
 # height = 400
 # count = 0
@@ -47,17 +47,17 @@ while(True):
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
                 # draw the contour and center of the shape on the image
-                cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
-                cv2.circle(image, (cX, cY), 7, (255, 255, 255), -1)
-                cv2.putText(image, "center", (cX - 20, cY - 20),
+                cv2.drawContours(frame, [c], -1, (0, 255, 0), 2)
+                cv2.circle(frame, (cX, cY), 7, (255, 255, 255), -1)
+                cv2.putText(frame, "center", (cX - 20, cY - 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                 
                 x,y,w,h = cv2.boundingRect(c)
-                cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (36,255,12), 2)
                 print(cv2.contourArea(c))
 
                 # show the image
-                cv2.imshow("Image", image)
+                cv2.imshow("frame", frame)
                 cv2.waitKey(0)
 
 
