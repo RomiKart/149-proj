@@ -31,12 +31,14 @@ class Cell():
     def draw(self):
         """ order to the cell to draw its representation on the canvas """
         if self.master != None :
+            target_num = None
             if self.obstacle:
                 fill = Cell.OBSTACLE_COLOR_BG
                 outline = Cell.OBSTACLE_COLOR_BORDER
-            elif self.fill:
+            elif self.master.parent.targets_grid[self.ord][self.abs]:
                 fill = Cell.FILLED_COLOR_BG
                 outline = Cell.FILLED_COLOR_BORDER
+                target_num = self.master.parent.targets_grid[self.ord][self.abs]
             else:
                 fill = Cell.EMPTY_COLOR_BG
                 outline = Cell.EMPTY_COLOR_BORDER
@@ -47,6 +49,8 @@ class Cell():
             ymax = ymin + self.size
 
             self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
+            if target_num is not None:
+                self.master.create_text(xmin + self.size/2, ymin + self.size/2, text = str(target_num), fill="white")
 
 class CellGrid(Canvas):
     def __init__(self, master, rowNumber, columnNumber, cellSize, gui_debug, *args, **kwargs):
@@ -98,13 +102,16 @@ class CellGrid(Canvas):
         row, column = self._eventCoords(event)
         cell = self.g[row][column]
         x, y = self.grid_to_world(cell.abs, cell.ord)
-        if not cell.obstacle:
-            cell._switch()
-            cell.draw()
+        # if not cell.obstacle:
+        if self.parent.targets_grid[row][column] == 0:
+            self.parent.num_targets += 1
+            cell.fill = True
             #add the cell to the list of cell switched during the click
             self.switched.append(cell)
             self.addTargetPos(x, y)
             self.addTargetGui(cell.ord, cell.abs)
+            cell.draw()
+
 
         self.parent.coord_var.set("GUI: {}, {}\t CV: {}, {}".format(cell.ord, cell.abs, x, y))
 
@@ -124,6 +131,7 @@ class CellGrid(Canvas):
     
     def addTargetGui(self, row, col):
         self.parent.targets_gui.append((row, col))
+        self.parent.targets_grid[row][col] = self.parent.num_targets
 
     def addTargetPos(self, x, y):
         self.parent.data.target_pos.append((x, y))
@@ -155,7 +163,9 @@ class Gui(Tk):
 
         self.obstacle_grid = np.zeros((self.num_rows, self.num_cols), dtype=int)
         self.obstacle_gui = []
+        self.targets_grid = np.zeros((self.num_rows, self.num_cols), dtype=int)
         self.targets_gui = []
+        self.num_targets = 0
         self.widgets(self.num_rows, self.num_cols, gui_debug)
 
     
@@ -242,13 +252,19 @@ class Gui(Tk):
             new_targets_gui = self.prune_paths(cur_targets)
         
         new_targets_world = []
-        for t in new_targets_gui:
+        self.targets_grid = np.zeros((self.num_rows, self.num_cols), dtype=int)
+        for i, t in enumerate(new_targets_gui):
             new_targets_world.append(self.grid_to_world(t[0], t[1]))
+            self.targets_grid[t[0]][t[1]] = i + 1
+        
         print("Old Targets World:", self.data.target_pos)
         print("Old Targets Gui:", self.targets_gui)
         print("New Targets Gui:", new_targets_gui)
         print("New Targets World:", new_targets_world)
         self.data.target_pos = new_targets_world
+        self.targets_gui = new_targets_gui
+        self.num_targets = len(self.targets_gui)
+        self.grid_widget.draw()
 
     def is_astar_required(self, start, end):
         required = False
@@ -300,6 +316,14 @@ class Gui(Tk):
         # (first element is ignored since its added by prev call to prune)
         pruned_path.append(path[-1])
         return pruned_path
+
+    def reset(self):
+        print("Resetting Targets")
+        self.targets_grid = np.zeros((self.num_rows, self.num_cols), dtype=int)
+        self.targets_gui = []
+        self.num_targets = 0
+        self.data.target_pos = []
+        self.grid_widget.draw()
 
 
 # Credit for this: Nicholas Swift

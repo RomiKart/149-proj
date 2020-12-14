@@ -59,6 +59,7 @@ async def main_async(root, ble_comm, ble_debug=False):
 
     content = ttk.Frame(root)
     # content = ttk.Frame(root, padding=(12,12,12,12))
+    ttk.Button(content, text='Reset', command=root.reset).grid(row=0, column=4, padx=10)
     ttk.Button(content, text='Connect', command=spawn_ble_listener).grid(row=0, column=3, padx=10)
     ttk.Button(content, text='Detect Romi', command=spawn_cv_listener).grid(row=0, column=2, padx=10)
     ttk.Button(content, text='Detect Obstacles', command=spawn_obs_listener).grid(row=0, column=1, padx=10)
