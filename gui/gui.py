@@ -290,9 +290,15 @@ class Gui(Tk):
             prv = path[i-1]
             nxt = path[i+1]
             if cur[0] == prv[0] and cur[0] == nxt[0]: # same row
-                continue
+                if prv[1] <= cur[1] and cur[1] <= nxt[1]:
+                    continue
+                elif prv[1] >= cur[1] and cur[1] >= nxt[1]:
+                    continue
             elif cur[1] == prv[1] and cur[1] == nxt[1]: # same col
-                continue
+                if prv[0] <= cur[0] and cur[0] <= nxt[0]:
+                    continue
+                elif prv[0] >= cur[0] and cur[0] >= nxt[0]:
+                    continue
             else:
                 a = nxt[0] - cur[0]
                 b = nxt[1] - cur[1]
